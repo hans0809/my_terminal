@@ -8,10 +8,8 @@
 
 ## 运行
 
-使用 `MoneyPrinterTurbo` conda 环境：
 
 ```bash
-conda activate MoneyPrinterTurbo
 cd desk_os
 python main.py
 ```
