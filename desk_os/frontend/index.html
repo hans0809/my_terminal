@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Desk OS</title>
+  <link rel="stylesheet" href="/css/style.css?v=11">
+</head>
+<body data-mode="windowed">
+  <div id="view-dashboard" class="view active">
+    <div id="crt-monitor" class="crt is-on is-booting">
+      <div class="crt__bezel">
+        <div id="crt-screen" class="crt__screen">
+          <div class="crt-content">
+            <main class="terminal">
+              <header class="terminal__head">
+                <div id="date" class="terminal__date">--- / --- --</div>
+                <div id="time-text" class="terminal__time">--:--</div>
+                <div id="weather" class="terminal__weather"></div>
+              </header>
+
+              <div class="terminal__status-line">
+                <span id="system-status">SYSTEM ONLINE</span>
+              </div>
+
+              <section class="terminal__metrics">
+                <div class="term-row">
+                  <span class="term-row__label">CPU</span>
+                  <span id="cpu-bar" class="term-row__bar">----------</span>
+                  <span id="cpu-val" class="term-row__val">--%</span>
+                </div>
+                <div class="term-row">
+                  <span class="term-row__label">GPU</span>
+                  <span id="gpu-bar" class="term-row__bar">----------</span>
+                  <span id="gpu-val" class="term-row__val">--</span>
+                </div>
+                <div class="term-row">
+                  <span class="term-row__label">MEM</span>
+                  <span id="ram-bar" class="term-row__bar">----------</span>
+                  <span id="ram-val" class="term-row__val">--</span>
+                </div>
+                <div class="term-row" id="vram-row">
+                  <span class="term-row__label">VRAM</span>
+                  <span id="vram-bar" class="term-row__bar">----------</span>
+                  <span id="vram-val" class="term-row__val">--</span>
+                </div>
+                <div class="term-row" id="cur-row">
+                  <span class="term-row__label">CUR</span>
+                  <span id="cur-bar" class="term-row__bar">----------</span>
+                  <span id="cur-val" class="term-row__val">--%</span>
+                </div>
+                <div class="term-row" id="oth-row">
+                  <span class="term-row__label">OTH</span>
+                  <span id="oth-bar" class="term-row__bar">----------</span>
+                  <span id="oth-val" class="term-row__val">--%</span>
+                </div>
+              </section>
+
+              <div class="terminal__rule" aria-hidden="true"></div>
+
+              <section class="terminal__info">
+                <div class="info-row">
+                  <span class="info-row__label">NET</span>
+                  <span class="info-row__val">↓ <span id="net-down">--</span>  ↑ <span id="net-up">--</span></span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row__label">DSK</span>
+                  <span id="disk-summary" class="info-row__val">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row__label">PING</span>
+                  <span class="info-row__val"><span id="ping-host">--</span>  <span id="ping">--</span></span>
+                </div>
+                <div class="info-row" id="tmp-row">
+                  <span class="info-row__label">TMP</span>
+                  <span id="tmp-summary" class="info-row__val">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row__label">KEY</span>
+                  <span id="key-summary" class="info-row__val">--</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-row__label">UP</span>
+                  <span id="uptime" class="info-row__val">--</span>
+                </div>
+                <div class="info-row is-hidden" id="rst-row">
+                  <span class="info-row__label">RST</span>
+                  <span id="rst-val" class="info-row__val">--</span>
+                </div>
+              </section>
+            </main>
+            <button id="hidden-entry" class="hidden-entry" aria-label="enter" title="">·</button>
+          </div>
+          <aside class="pixel-dog" aria-hidden="true">
+            <span class="pixel-dog__eat" id="pixel-dog-eat" aria-hidden="true"></span>
+            <span class="pixel-dog__say" id="pixel-dog-say">z</span>
+            <span class="pixel-dog__wx" aria-hidden="true"><i></i><i></i><i></i></span>
+            <canvas id="pixel-dog-canvas"></canvas>
+          </aside>
+          <canvas id="pixel-bone" class="pixel-bone" aria-hidden="true"></canvas>
+          <div class="eink-flash" id="eink-flash" aria-hidden="true"></div>
+        </div>
+      </div>
+      <button id="power-btn" class="crt__power" type="button" aria-pressed="true" aria-label="power">
+        I/O
+      </button>
+    </div>
+  </div>
+
+  <div id="view-desk" class="view">
+    <main class="desk-placeholder">
+      <p class="desk-placeholder__hint">—</p>
+    </main>
+  </div>
+
+  <script src="/js/app.js?v=2"></script>
+  <script src="/js/dashboard.js?v=6"></script>
+  <script src="/js/pixel-dog.js?v=21"></script>
+</body>
+</html>

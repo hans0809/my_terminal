@@ -1,0 +1,24 @@
+# Playwright MCP / browser verification
+.playwright-mcp/
+playwright-report/
+test-results/
+blob-report/
+
+# Root-level verification screenshots (keep desk_os/frontend/assets)
+/*.png
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+credentials.json
+secrets.json
+*.log
