@@ -231,6 +231,7 @@
   const taskDropAskText = document.getElementById('task-drop-ask-text');
   const taskDropKeep = document.getElementById('task-drop-keep');
   const taskDropYes = document.getElementById('task-drop-yes');
+  const taskDone = document.getElementById('task-done');
   let tasks = [];
   let taskOpenId = '';
   let taskLoaded = false;
@@ -308,11 +309,20 @@
     return `${log.length} mark${log.length === 1 ? '' : 's'} · ${fmtDay(d)} ${fmtTime(d)}`;
   }
 
+  function listTasks() {
+    const open = [];
+    const done = [];
+    tasks.forEach((task) => {
+      if (task.done) done.push(task);
+      else open.push(task);
+    });
+    return open.reverse().concat(done.reverse());
+  }
+
   function renderTaskList() {
     if (!taskRows) return;
-    const rows = tasks.slice().reverse();
-    taskRows.innerHTML = rows.map((task) => `
-      <button class="task-row" type="button" data-id="${task.id}">
+    taskRows.innerHTML = listTasks().map((task) => `
+      <button class="task-row${task.done ? ' is-done' : ''}" type="button" data-id="${task.id}">
         <span class="task-row__name">${escapeHtml(task.title || 'untitled')}</span>
         <span class="task-row__mark">${escapeHtml(lastBeat(task))}</span>
       </button>
@@ -372,6 +382,8 @@
     if (taskName && document.activeElement !== taskName) {
       taskName.value = task.title || '';
     }
+    if (taskDetail) taskDetail.classList.toggle('is-done', !!task.done);
+    if (taskDone) taskDone.textContent = task.done ? 'OPEN' : 'DONE';
     const days = groupLog(task.log || []);
     taskTimeline.innerHTML = days.map((day) => `
       <section class="task-day">
@@ -543,7 +555,7 @@
       e.preventDefault();
       const title = (taskNewInput.value || '').trim();
       if (!title) return;
-      const task = { id: taskId(), title, log: [] };
+      const task = { id: taskId(), title, log: [], done: false };
       tasks.push(task);
       taskNewInput.value = '';
       saveTasks();
@@ -580,6 +592,16 @@
     taskDrop.addEventListener('click', () => {
       if (!taskOpenId) return;
       showDropAsk();
+    });
+  }
+
+  if (taskDone) {
+    taskDone.addEventListener('click', () => {
+      const task = tasks.find((x) => x.id === taskOpenId);
+      if (!task) return;
+      task.done = !task.done;
+      saveTasks();
+      renderTaskDetail({ keepScroll: true });
     });
   }
 

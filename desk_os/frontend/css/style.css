@@ -93,7 +93,8 @@ html, body,
 .task-row,
 .task-heading,
 .task-drop,
-.task-drop-ask button {
+.task-drop-ask button,
+.task-foot .task-drop {
   cursor: var(--cursor-block) !important;
 }
 
@@ -1031,10 +1032,15 @@ body[data-mode="windowed"] .terminal__info {
   color: var(--fg-time);
 }
 
-.task-row__mark {
-  font-size: clamp(10px, 1.3vmin, 12px);
-  letter-spacing: 0.08em;
+.task-row.is-done .task-row__name {
   color: var(--fg-dim);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--fg-time);
+}
+
+.task-row.is-done .task-row__mark {
+  color: var(--fg-bar-empty);
 }
 
 .task-prompt {
@@ -1064,6 +1070,29 @@ body[data-mode="windowed"] .terminal__info {
   outline: none;
   caret-color: var(--fg-time);
   user-select: text;
+}
+
+.task-detail.is-done .task-detail__name {
+  color: var(--fg-dim);
+}
+
+.task-detail.is-done .task-detail__title {
+  position: relative;
+}
+
+.task-detail.is-done .task-detail__title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.72em;
+  height: 1px;
+  background: var(--fg-time);
+  pointer-events: none;
+}
+
+.task-detail.is-done .task-log {
+  display: none;
 }
 
 .task-detail__name {
@@ -1198,7 +1227,18 @@ body[data-mode="windowed"] .terminal__info {
   color: var(--fg-dim);
 }
 
-.task-detail.is-asking > .task-drop {
+.task-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  width: 100%;
+}
+
+.task-foot .task-drop {
+  align-self: auto;
+}
+
+.task-detail.is-asking .task-foot {
   display: none;
 }
 

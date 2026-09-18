@@ -140,6 +140,7 @@ class TaskItem(BaseModel):
     id: str = Field(max_length=40)
     title: str = Field(default="", max_length=TASK_TITLE_LIMIT)
     log: list[TaskBeat] = Field(default_factory=list)
+    done: bool = False
 
 
 class TasksBody(BaseModel):
@@ -172,6 +173,7 @@ def _clean_tasks(items: list[TaskItem]) -> list[dict]:
             "id": (item.id or "")[:40],
             "title": (item.title or "").strip()[:TASK_TITLE_LIMIT],
             "log": beats,
+            "done": bool(item.done),
         })
     return out
 

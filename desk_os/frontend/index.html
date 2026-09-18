@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Desk OS</title>
-  <link rel="stylesheet" href="/css/style.css?v=24">
+  <link rel="stylesheet" href="/css/style.css?v=26">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -197,13 +197,18 @@
                 </form>
               </div>
               <div id="task-detail" class="task-detail">
+              <div class="task-detail__title">
                 <input id="task-detail-name" class="task-detail__name" maxlength="80" spellcheck="false">
+              </div>
                 <div id="task-timeline" class="task-timeline"></div>
                 <form id="task-log" class="task-log" autocomplete="off">
                   <span class="task-prompt">+</span>
                   <input id="task-log-input" class="task-log__input" maxlength="200" spellcheck="false">
                 </form>
-                <button id="task-drop" class="task-drop" type="button">DROP</button>
+                <div class="task-foot">
+                  <button id="task-done" class="task-drop" type="button">DONE</button>
+                  <button id="task-drop" class="task-drop" type="button">DROP</button>
+                </div>
                 <div id="task-drop-ask" class="task-drop-ask">
                   <p id="task-drop-ask-text" class="task-drop-ask__text">DROP THIS?</p>
                   <div class="task-drop-ask__row">
@@ -238,7 +243,7 @@
   </div>
 
   <script src="/js/app.js?v=5"></script>
-  <script src="/js/desk.js?v=12"></script>
+  <script src="/js/desk.js?v=13"></script>
   <script src="/js/dashboard.js?v=6"></script>
   <script src="/js/pixel-dog.js?v=23"></script>
 </body>
