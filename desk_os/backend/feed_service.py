@@ -383,8 +383,8 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
             """
             INSERT OR IGNORE INTO articles (
               feed_id, guid, title, summary, url, author, category,
-              published_at, fetched_at, is_read, is_saved, is_read_later
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)
+              published_at, fetched_at, is_read, is_saved, is_read_later, body_html
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
             """,
             (
                 feed_id,
@@ -396,6 +396,7 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
                 category,
                 (item.get("published_at") or "")[:40],
                 now,
+                item.get("body_html") or "",
             ),
         )
         new_n += cur.rowcount

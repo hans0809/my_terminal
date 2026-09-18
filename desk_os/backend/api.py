@@ -224,9 +224,9 @@ def api_articles_list(
 
 
 @app.get("/api/img")
-def api_img(u: str):
+def api_img(u: str, r: str = ""):
     try:
-        data, ctype = proxy_image(u)
+        data, ctype = proxy_image(u, r)
     except Exception:
         return Response(status_code=404)
     return Response(

@@ -6,7 +6,7 @@ import webbrowser
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from backend.article_fetch import fetch_article_html, proxied_body
+from backend.article_fetch import fetch_article_html, is_richer, looks_teaser, proxied_body
 from backend.feed_service import CATEGORIES, _connect, _row
 
 ARTICLE_LIMIT = 300
@@ -121,18 +121,8 @@ def get_article(aid: int, proxy: bool = True) -> dict[str, Any] | None:
     item.pop("feed_category", None)
     item.pop("guid", None)
     if proxy:
-        item["body_html"] = proxied_body(item.get("body_html") or "")
+        item["body_html"] = proxied_body(item.get("body_html") or "", item.get("url") or "")
     return item
-
-
-def _needs_body(html: str, summary: str = "") -> bool:
-    raw = (html or "").strip()
-    if "<img" in raw and len(raw) >= 400:
-        return False
-    blob = raw + (summary or "")
-    if "查看全文" in blob or "阅读全文" in blob:
-        return True
-    return "<img" not in raw and len(raw) < 800
 
 
 def ensure_body(aid: int) -> dict[str, Any] | None:
@@ -140,20 +130,19 @@ def ensure_body(aid: int) -> dict[str, Any] | None:
     if not item:
         return None
     html = (item.get("body_html") or "").strip()
-    if _needs_body(html, item.get("summary") or ""):
-        url = (item.get("url") or "").strip()
-        if url:
-            try:
-                fetched = fetch_article_html(url)
-            except Exception as exc:
-                print(f"[desk-os] flow body fetch fail id={aid} {exc}", flush=True)
-                fetched = ""
-            if fetched:
-                html = fetched
-                with _connect() as conn:
-                    conn.execute("UPDATE articles SET body_html = ? WHERE id = ?", (html, aid))
-                item["body_html"] = html
-    item["body_html"] = proxied_body(item.get("body_html") or "")
+    page = (item.get("url") or "").strip()
+    if looks_teaser(html, item.get("summary") or "") and page:
+        try:
+            fetched = fetch_article_html(page)
+        except Exception as exc:
+            print(f"[desk-os] flow body fetch fail id={aid} {exc}", flush=True)
+            fetched = ""
+        if fetched and is_richer(fetched, html):
+            html = fetched
+            with _connect() as conn:
+                conn.execute("UPDATE articles SET body_html = ? WHERE id = ?", (html, aid))
+            item["body_html"] = html
+    item["body_html"] = proxied_body(item.get("body_html") or "", page)
     return item
 
 

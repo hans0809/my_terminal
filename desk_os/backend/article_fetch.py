@@ -1,4 +1,4 @@
-"""FLOW — 打开文章时拉取原文 HTML（含图片），供阅读页显示。"""
+"""FLOW — 打开文章时得到可读 HTML（含图片）。对任意 RSS 源同一套规则。"""
 
 from __future__ import annotations
 
@@ -12,18 +12,27 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
 
+# class / id 子串，覆盖常见 CMS，不是某个站点的特例
 _BODY_HINTS = (
-    "article__main__content",
-    "wangEditor-txt",
-    "article-body",
-    "article__content",
-    "post-content",
-    "entry-content",
-    "post__content",
-    "rich-text",
-    "article-content",
-    "post-body",
-    "entry__content",
+    "article-body", "article_body", "article__content", "article__main",
+    "article-content", "article_content", "article-text", "articleBody",
+    "post-content", "post_content", "post__content", "post-body", "post__body",
+    "entry-content", "entry__content", "entry-body", "entry__body",
+    "story-body", "story__body", "story-content", "story__content",
+    "rich-text", "rich_text", "markdown-body", "prose", "content-body",
+    "news-content", "news_content", "item-body", "item__body",
+    "wangeditor", "postbody", "articlebody", "main-content", "main__content",
+)
+_BODY_TAGS = {"article", "main"}
+_BODY_IDS = {"content", "main", "main-content", "article", "post", "entry", "body", "article-body"}
+_LAZY_SRC = (
+    "src", "data-src", "data-original", "data-lazy-src",
+    "data-actualsrc", "data-original-src", "data-url",
+)
+_TEASER = (
+    "查看全文", "阅读全文", "阅读原文", "继续阅读", "全文",
+    "read more", "continue reading", "view full", "full article",
+    "read the rest", "keep reading", "read on",
 )
 _SKIP = {"script", "style", "noscript", "svg", "iframe", "form", "button", "nav", "footer", "header"}
 _VOID = {"img", "br", "hr", "source"}
@@ -57,7 +66,7 @@ def _sniff_image(data: bytes, ctype: str) -> str:
     return kind if kind.startswith("image/") else "image/jpeg"
 
 
-def _http_get(url: str, headers: dict) -> object:
+def _http_get(url: str, headers: dict):
     import httpx
 
     global _VERIFY
@@ -104,56 +113,116 @@ def _abs(base: str, src: str) -> str:
     return out
 
 
+def _is_body_start(tag: str, attrs) -> bool:
+    if tag in _BODY_TAGS:
+        return True
+    if _attr(attrs, "role").lower() == "main":
+        return True
+    if _attr(attrs, "itemprop") == "articleBody":
+        return True
+    blob = f"{_attr(attrs, 'class')} {_attr(attrs, 'id')}".lower()
+    if any(hint in blob for hint in _BODY_HINTS):
+        return True
+    eid = _attr(attrs, "id").lower()
+    return eid in _BODY_IDS
+
+
+def _richness(html: str) -> tuple[int, int, int]:
+    raw = html or ""
+    return (raw.count("<img"), raw.count("<p"), len(raw))
+
+
+def is_richer(new_html: str, old_html: str) -> bool:
+    return _richness(new_html) > _richness(old_html)
+
+
+def looks_complete(html: str) -> bool:
+    raw = (html or "").strip()
+    if not raw:
+        return False
+    imgs = raw.count("<img")
+    ps = raw.count("<p")
+    if imgs >= 1 and ps >= 2:
+        return True
+    if ps >= 4 and len(raw) >= 800:
+        return True
+    return len(raw) >= 2500
+
+
+def looks_teaser(html: str, summary: str = "") -> bool:
+    if looks_complete(html):
+        return False
+    blob = f"{html or ''} {summary or ''}".lower()
+    if any(token.lower() in blob for token in _TEASER):
+        return True
+    return not looks_complete(html)
+
+
+class _Frame:
+    __slots__ = ("depth", "buf")
+
+    def __init__(self, start: str) -> None:
+        self.depth = 1
+        self.buf = [start]
+
+
 class _Capture(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.cands: list[str] = []
-        self._buf: list[str] = []
-        self._depth = 0
+        self._frames: list[_Frame] = []
         self._skip = 0
 
     def handle_starttag(self, tag: str, attrs) -> None:
         if tag in _SKIP:
             self._skip += 1
             return
-        cls = _attr(attrs, "class")
-        hit = any(h in cls for h in _BODY_HINTS)
-        if self._depth == 0 and hit:
-            self._depth = 1
-            self._buf = [self.get_starttag_text() or ""]
-            if tag in _VOID:
-                self.cands.append("".join(self._buf))
-                self._depth = 0
+        start = self.get_starttag_text() or ""
+        if self._skip:
             return
-        if self._depth and not self._skip:
-            self._buf.append(self.get_starttag_text() or "")
+        for frame in self._frames:
+            frame.buf.append(start)
             if tag not in _VOID:
-                self._depth += 1
+                frame.depth += 1
+        if _is_body_start(tag, attrs):
+            if tag in _VOID:
+                self.cands.append(start)
+            else:
+                self._frames.append(_Frame(start))
 
     def handle_endtag(self, tag: str) -> None:
         if tag in _SKIP and self._skip:
             self._skip -= 1
             return
-        if self._depth and not self._skip and tag not in _VOID:
-            self._buf.append(f"</{tag}>")
-            self._depth -= 1
-            if self._depth <= 0:
-                self.cands.append("".join(self._buf))
-                self._depth = 0
-                self._buf = []
+        if self._skip or tag in _VOID:
+            return
+        end = f"</{tag}>"
+        keep: list[_Frame] = []
+        for frame in self._frames:
+            frame.buf.append(end)
+            frame.depth -= 1
+            if frame.depth <= 0:
+                self.cands.append("".join(frame.buf))
+            else:
+                keep.append(frame)
+        self._frames = keep
 
     def handle_data(self, data: str) -> None:
-        if self._depth and not self._skip:
-            self._buf.append(data)
+        if self._skip:
+            return
+        for frame in self._frames:
+            frame.buf.append(data)
 
     def best(self) -> str:
-        if self._depth and self._buf:
-            self.cands.append("".join(self._buf))
+        for frame in self._frames:
+            self.cands.append("".join(frame.buf))
+        self._frames = []
         if not self.cands:
             return ""
 
         def score(html: str) -> tuple[int, int, int]:
-            return (html.count("<img"), html.count("<p"), len(html))
+            imgs, ps, n = _richness(html)
+            return (imgs, ps, n - html.count("<a ") * 80)
 
         return max(self.cands, key=score)
 
@@ -173,17 +242,15 @@ class _Sanitize(HTMLParser):
         if self._skip or tag not in _KEEP:
             return
         if tag == "img":
-            candidates = (
-                _attr(attrs, "src"),
-                _attr(attrs, "data-src"),
-                _attr(attrs, "data-original"),
-                _srcset_first(_attr(attrs, "srcset") or _attr(attrs, "data-srcset")),
-            )
             src = ""
-            for cand in candidates:
-                src = _abs(self.base, cand)
+            for name in _LAZY_SRC:
+                src = _abs(self.base, _attr(attrs, name))
                 if src:
                     break
+            if not src:
+                src = _abs(self.base, _srcset_first(
+                    _attr(attrs, "srcset") or _attr(attrs, "data-srcset")
+                ))
             if not src:
                 return
             alt = _attr(attrs, "alt").replace('"', "")
@@ -246,8 +313,11 @@ def extract_body(html: str, base: str) -> str:
         cap.close()
     except Exception:
         pass
-    fragment = cap.best() or html
-    return sanitize_html(fragment, base)
+    fragment = cap.best()
+    picked = sanitize_html(fragment, base) if fragment else ""
+    if looks_complete(picked) or picked.count("<p") >= 2 or "<img" in picked:
+        return picked
+    return sanitize_html(html, base) or picked
 
 
 def fetch_article_html(url: str) -> str:
@@ -270,36 +340,69 @@ def fetch_article_html(url: str) -> str:
     return extract_body(text, final or url)
 
 
-def proxied_body(html: str) -> str:
+def proxied_body(html: str, page_url: str = "") -> str:
     if not html:
         return ""
+    ref = quote(page_url, safe="") if page_url else ""
 
     def repl(match: re.Match[str]) -> str:
         url = match.group(1)
-        return f'src="/api/img?u={quote(url, safe="")}"'
+        src = f'src="/api/img?u={quote(url, safe="")}'
+        if ref:
+            src += f"&r={ref}"
+        return src + '"'
 
     return re.sub(r"src=['\"](https?://[^'\"]+)['\"]", repl, html)
 
 
-def proxy_image(url: str) -> tuple[bytes, str]:
+def _site_referer(url: str) -> str:
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    parts = [p for p in host.split(".") if p]
+    if len(parts) >= 3:
+        return f"{parsed.scheme}://{'.'.join(parts[1:])}/"
+    if host:
+        return f"{parsed.scheme}://{host}/"
+    return ""
+
+
+def proxy_image(url: str, referer: str = "") -> tuple[bytes, str]:
     parsed = urlparse(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         raise ValueError("bad image url")
     host = (parsed.hostname or "").lower()
     if host in {"127.0.0.1", "localhost", "::1"} or host.endswith(".localhost"):
         raise ValueError("bad image url")
-    referer = f"{parsed.scheme}://{parsed.netloc}/"
-    if host.endswith("sspai.com"):
-        referer = "https://sspai.com/"
-    headers = {
-        "User-Agent": USER_AGENT,
-        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-        "Referer": referer,
-    }
-    resp = _http_get(url, headers)
-    resp.raise_for_status()
-    data = resp.content
-    ctype = resp.headers.get("content-type") or ""
-    if len(data) > 2_500_000:
-        data = data[:2_500_000]
-    return data, _sniff_image(data, ctype)
+    refs: list[str] = []
+    page = (referer or "").strip()
+    if page.startswith("http://") or page.startswith("https://"):
+        refs.append(page)
+    site = _site_referer(url)
+    if site and site not in refs:
+        refs.append(site)
+    origin = f"{parsed.scheme}://{parsed.netloc}/"
+    if origin not in refs:
+        refs.append(origin)
+    refs.append("")
+    last: Exception | None = None
+    for ref in refs:
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        }
+        if ref:
+            headers["Referer"] = ref
+        try:
+            resp = _http_get(url, headers)
+            if resp.status_code == 403:
+                continue
+            resp.raise_for_status()
+            data = resp.content
+            ctype = resp.headers.get("content-type") or ""
+            if len(data) > 2_500_000:
+                data = data[:2_500_000]
+            return data, _sniff_image(data, ctype)
+        except Exception as exc:
+            last = exc
+            continue
+    raise last or ValueError("image fetch failed")

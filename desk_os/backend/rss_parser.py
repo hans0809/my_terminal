@@ -11,6 +11,8 @@ from time import struct_time
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
+from backend.article_fetch import sanitize_html
+
 TITLE_LIMIT = 240
 URL_LIMIT = 800
 SUMMARY_LIMIT = 4000
@@ -144,6 +146,7 @@ def parse_feed_bytes(data: bytes, base_url: str = "") -> dict[str, Any]:
             "url": link,
             "title": title or "(untitled)",
             "summary": html_to_text(summary_html)[:SUMMARY_LIMIT],
+            "body_html": sanitize_html(summary_html, link),
             "author": author,
             "published_at": published,
         })
