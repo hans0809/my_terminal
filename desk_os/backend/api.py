@@ -3,26 +3,22 @@
 import asyncio
 import json
 import os
-import subprocess
-import sys
 from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import key_state
+from backend import article_service, feed_service, key_state
+from backend.article_fetch import proxy_image
 from backend.cursor_usage import get_cursor_usage
 from backend.focus import get_focus
 from backend.system_monitor import get_system_status
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 DATA_DIR = FRONTEND_DIR.parent / "data"
-NOTE_FILE = DATA_DIR / "note.txt"
-NOTE_LIMIT = 20000
-CLIP_LIMIT = 4000
 TASKS_FILE = DATA_DIR / "tasks.json"
 TASK_LIMIT = 48
 TASK_LOG_LIMIT = 200
@@ -30,6 +26,7 @@ TASK_TITLE_LIMIT = 80
 TASK_TEXT_LIMIT = 200
 
 app = FastAPI(title="Desk OS", docs_url=None, redoc_url=None)
+feed_service.init_db()
 
 
 @app.get("/api/key-pulse")
@@ -85,50 +82,6 @@ def api_system():
         "iso": now.isoformat(),
     }
     return status
-
-
-class NoteBody(BaseModel):
-    text: str = Field(default="", max_length=NOTE_LIMIT)
-
-
-@app.get("/api/note")
-def api_note_get():
-    try:
-        text = NOTE_FILE.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        text = ""
-    except OSError:
-        text = ""
-    return {"text": text[:NOTE_LIMIT]}
-
-
-@app.put("/api/note")
-def api_note_put(body: NoteBody):
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    NOTE_FILE.write_text(body.text[:NOTE_LIMIT], encoding="utf-8")
-    return {"ok": True}
-
-
-@app.get("/api/clipboard")
-def api_clipboard():
-    text = ""
-    if sys.platform == "win32":
-        try:
-            out = subprocess.check_output(
-                [
-                    "powershell",
-                    "-NoProfile",
-                    "-Command",
-                    "[Console]::OutputEncoding = [Text.UTF8Encoding]::UTF8; Get-Clipboard",
-                ],
-                timeout=2,
-                stderr=subprocess.DEVNULL,
-                creationflags=0x08000000,
-            )
-            text = out.decode("utf-8", errors="replace")
-        except (subprocess.SubprocessError, OSError):
-            text = ""
-    return {"text": text[:CLIP_LIMIT]}
 
 
 class TaskBeat(BaseModel):
@@ -193,6 +146,131 @@ def api_tasks_put(body: TasksBody):
     os.replace(tmp, TASKS_FILE)
     print(f"[desk-os] tasks saved n={len(tasks)}", flush=True)
     return {"ok": True, "n": len(tasks)}
+
+
+class FeedIn(BaseModel):
+    name: str = Field(default="", max_length=240)
+    url: str = Field(default="", max_length=800)
+    category: str = Field(default="OTHER", max_length=16)
+    update_interval: int | None = None
+
+
+class FeedPatch(BaseModel):
+    name: str | None = Field(default=None, max_length=240)
+    url: str | None = Field(default=None, max_length=800)
+    category: str | None = Field(default=None, max_length=16)
+    enabled: bool | None = None
+    update_interval: int | None = None
+
+
+def _as_bool(value: str | None) -> bool | None:
+    if value is None or value == "":
+        return None
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+@app.get("/api/feeds")
+def api_feeds_list():
+    return {"feeds": feed_service.list_feeds(), "counts": article_service.counts()}
+
+
+@app.post("/api/feeds")
+def api_feeds_add(body: FeedIn):
+    interval = 30 if body.update_interval is None else body.update_interval
+    return feed_service.add_feed(body.name, body.url, body.category, interval)
+
+
+@app.put("/api/feeds/{fid}")
+def api_feeds_put(fid: int, body: FeedPatch):
+    dump = getattr(body, "model_dump", None) or body.dict
+    fields = dump(exclude_unset=True)
+    return feed_service.update_feed(fid, **fields)
+
+
+@app.delete("/api/feeds/{fid}")
+def api_feeds_delete(fid: int):
+    return feed_service.drop_feed(fid)
+
+
+@app.post("/api/feeds/{fid}/refresh")
+def api_feeds_refresh(fid: int):
+    return feed_service.fetch_feed(fid)
+
+
+@app.post("/api/feeds/refresh")
+def api_feeds_refresh_all():
+    return feed_service.fetch_all()
+
+
+@app.get("/api/articles")
+def api_articles_list(
+    category: str = "",
+    unread: str | None = None,
+    saved: str | None = None,
+    read_later: str | None = None,
+    search: str = "",
+    date_range: str = "all",
+    limit: int = 120,
+):
+    return article_service.list_articles(
+        category=category,
+        unread=_as_bool(unread),
+        saved=_as_bool(saved),
+        read_later=_as_bool(read_later),
+        search=search,
+        date_range=date_range,
+        limit=limit,
+    )
+
+
+@app.get("/api/img")
+def api_img(u: str):
+    try:
+        data, ctype = proxy_image(u)
+    except Exception:
+        return Response(status_code=404)
+    return Response(
+        content=data,
+        media_type=ctype,
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/api/articles/{aid}")
+def api_articles_get(aid: int):
+    item = article_service.ensure_body(aid)
+    if not item:
+        return {"ok": False, "error": "missing"}
+    return {"ok": True, "article": item}
+
+
+@app.post("/api/articles/{aid}/read")
+def api_articles_read(aid: int):
+    item = article_service.mark_read(aid, True)
+    if not item:
+        return {"ok": False, "error": "missing"}
+    return {"ok": True, "article": item}
+
+
+@app.post("/api/articles/{aid}/save")
+def api_articles_save(aid: int):
+    item = article_service.toggle_saved(aid)
+    if not item:
+        return {"ok": False, "error": "missing"}
+    return {"ok": True, "article": item}
+
+
+@app.post("/api/articles/{aid}/read-later")
+def api_articles_later(aid: int):
+    item = article_service.toggle_read_later(aid)
+    if not item:
+        return {"ok": False, "error": "missing"}
+    return {"ok": True, "article": item}
+
+
+@app.post("/api/articles/{aid}/open")
+def api_articles_open(aid: int):
+    return article_service.open_article(aid)
 
 
 @app.get("/")

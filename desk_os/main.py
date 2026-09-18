@@ -35,6 +35,7 @@ from backend.display_utils import (  # noqa: E402
 from backend import key_state  # noqa: E402
 from backend.cursor_usage import start as start_cursor_usage  # noqa: E402
 from backend.dog_pusher import start as start_dog_pusher  # noqa: E402
+from backend.flow import start as start_flow  # noqa: E402
 from backend.keyboard_hook import start_global_keyboard_listener  # noqa: E402
 
 
@@ -122,6 +123,7 @@ def main():
     )
     server_thread.start()
     start_cursor_usage()
+    start_flow()
 
     # 等待服务就绪
     for _ in range(50):
@@ -171,10 +173,6 @@ def main():
         .crt__key,
         .app-tile,
         .crt__home,
-        .app-calc__pad button,
-        .app-pom__face,
-        .app-pom__reset,
-        .app-note__text,
         .task-new__input,
         .task-log__input,
         .task-detail__name,
@@ -184,7 +182,15 @@ def main():
         .task-row,
         .task-heading,
         .task-drop,
-        .task-drop-ask button {{
+        .task-drop-ask button,
+        .flow-tab,
+        .flow-cat,
+        .flow-row,
+        .flow-feed,
+        .flow-act,
+        .flow-search__input,
+        .flow-form__input,
+        .flow-read__body {{
             cursor: url('{url}/assets/cursor-block.png?v=2') 16 16, text !important;
         }}
         """

@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Desk OS</title>
-  <link rel="stylesheet" href="/css/style.css?v=26">
+  <link rel="stylesheet" href="/css/style.css?v=31">
+  <link rel="stylesheet" href="/css/flow.css?v=5">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -95,43 +96,6 @@
 
           <div id="layer-desk" class="layer">
             <div class="springboard">
-              <button class="app-tile" type="button" data-app="note">
-                <span class="app-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="8" y="5" width="16" height="22"/>
-                    <path d="M12 11h8M12 16h8M12 21h5"/>
-                  </svg>
-                </span>
-                <span class="app-name">NOTE</span>
-              </button>
-              <button class="app-tile" type="button" data-app="pom">
-                <span class="app-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="16" cy="17" r="9"/>
-                    <path d="M16 17V11M16 6v2M12 6h8"/>
-                  </svg>
-                </span>
-                <span class="app-name">POM</span>
-              </button>
-              <button class="app-tile" type="button" data-app="clip">
-                <span class="app-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="9" y="9" width="12" height="15"/>
-                    <path d="M13 9V7h6v2"/>
-                    <rect x="12" y="6" width="11" height="14"/>
-                  </svg>
-                </span>
-                <span class="app-name">CLIP</span>
-              </button>
-              <button class="app-tile" type="button" data-app="calc">
-                <span class="app-icon" aria-hidden="true">
-                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="8" y="6" width="16" height="20"/>
-                    <path d="M11 10h10M12 16h2M18 16h2M12 21h2M18 21h2"/>
-                  </svg>
-                </span>
-                <span class="app-name">CALC</span>
-              </button>
               <button class="app-tile" type="button" data-app="task">
                 <span class="app-icon" aria-hidden="true">
                   <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
@@ -143,50 +107,20 @@
                 </span>
                 <span class="app-name">TASK</span>
               </button>
+              <button class="app-tile" type="button" data-app="flow">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
+                    <rect x="6" y="8" width="20" height="2"/>
+                    <rect x="6" y="15" width="16" height="2"/>
+                    <rect x="6" y="22" width="11" height="2"/>
+                  </svg>
+                </span>
+                <span class="app-name">FLOW</span>
+              </button>
             </div>
           </div>
 
           <div id="layer-app" class="layer">
-            <section id="app-note" class="app-page">
-              <h1 class="app-page__title">NOTE</h1>
-              <textarea id="note-text" class="app-note__text" spellcheck="false" maxlength="20000" placeholder=""></textarea>
-            </section>
-
-            <section id="app-pom" class="app-page">
-              <h1 class="app-page__title">POM</h1>
-              <button id="pom-face" class="app-pom__face" type="button">25:00</button>
-              <button id="pom-reset" class="app-pom__reset" type="button">RESET</button>
-            </section>
-
-            <section id="app-clip" class="app-page">
-              <h1 class="app-page__title">CLIP</h1>
-              <pre id="clip-text" class="app-clip__text"></pre>
-            </section>
-
-            <section id="app-calc" class="app-page">
-              <h1 class="app-page__title">CALC</h1>
-              <div id="calc-display" class="app-calc__display">0</div>
-              <div class="app-calc__pad">
-                <button type="button" data-key="C">C</button>
-                <button type="button" data-key="/">/</button>
-                <button type="button" data-key="*">×</button>
-                <button type="button" data-key="-">−</button>
-                <button type="button" data-key="7">7</button>
-                <button type="button" data-key="8">8</button>
-                <button type="button" data-key="9">9</button>
-                <button type="button" data-key="+">+</button>
-                <button type="button" data-key="4">4</button>
-                <button type="button" data-key="5">5</button>
-                <button type="button" data-key="6">6</button>
-                <button type="button" data-key="=" class="is-eq">=</button>
-                <button type="button" data-key="1">1</button>
-                <button type="button" data-key="2">2</button>
-                <button type="button" data-key="3">3</button>
-                <button type="button" data-key="0" class="is-zero">0</button>
-                <button type="button" data-key=".">.</button>
-              </div>
-            </section>
-
             <section id="app-task" class="app-page">
               <button id="task-heading" class="app-page__title task-heading" type="button">TASK</button>
               <div id="task-list" class="task-list is-on">
@@ -218,6 +152,67 @@
                 </div>
               </div>
             </section>
+            <section id="app-flow" class="app-page">
+              <button id="flow-heading" class="app-page__title task-heading" type="button">FLOW</button>
+              <p id="flow-flash" class="flow-flash"></p>
+
+              <div id="flow-list" class="flow-panel is-on">
+                <form id="flow-search" class="flow-search" autocomplete="off">
+                  <span class="task-prompt">&gt;</span>
+                  <input id="flow-search-input" class="flow-search__input" maxlength="80" spellcheck="false">
+                </form>
+                <div id="flow-tabs" class="flow-tabs">
+                  <button class="flow-tab is-on" type="button" data-tab="all">ALL</button>
+                  <button class="flow-tab" type="button" data-tab="unread">UNREAD</button>
+                  <button class="flow-tab" type="button" data-tab="saved">SAVED</button>
+                  <button class="flow-tab" type="button" data-tab="later">LATER</button>
+                </div>
+                <div id="flow-range" class="flow-tabs">
+                  <button class="flow-tab is-on" type="button" data-range="all">ALL</button>
+                  <button class="flow-tab" type="button" data-range="today">TODAY</button>
+                  <button class="flow-tab" type="button" data-range="week">WEEK</button>
+                  <button class="flow-tab" type="button" data-range="month">MONTH</button>
+                </div>
+                <div id="flow-cats" class="flow-cats"></div>
+                <div id="flow-rows" class="task-rows"></div>
+                <div class="task-foot">
+                  <button id="flow-refresh" class="task-drop" type="button">REFRESH</button>
+                  <button id="flow-sources" class="task-drop" type="button">SOURCES</button>
+                </div>
+              </div>
+
+              <div id="flow-read" class="flow-panel">
+                <h1 id="flow-read-title" class="flow-read__title"></h1>
+                <p id="flow-read-meta" class="flow-read__meta"></p>
+                <p id="flow-read-label" class="flow-read__label">ABSTRACT</p>
+                <div id="flow-read-body" class="flow-read__body"></div>
+                <div class="task-foot">
+                  <button id="flow-save" class="task-drop" type="button">SAVE</button>
+                  <button id="flow-later" class="task-drop" type="button">LATER</button>
+                  <button id="flow-open" class="task-drop" type="button">OPEN ORIGINAL</button>
+                </div>
+              </div>
+
+              <div id="flow-feeds" class="flow-panel">
+                <div id="flow-feed-rows" class="task-rows"></div>
+                <div class="task-foot">
+                  <button id="flow-add" class="task-drop" type="button">+ ADD FEED</button>
+                </div>
+              </div>
+
+              <div id="flow-form" class="flow-panel">
+                <label class="flow-label" for="flow-form-name">NAME</label>
+                <input id="flow-form-name" class="flow-form__input" maxlength="80" spellcheck="false">
+                <label class="flow-label" for="flow-form-url">URL</label>
+                <input id="flow-form-url" class="flow-form__input" maxlength="300" spellcheck="false">
+                <p class="flow-label">CATEGORY</p>
+                <div id="flow-form-cats" class="flow-tabs"></div>
+                <div class="task-foot">
+                  <button id="flow-form-ok" class="task-drop" type="button">SAVE</button>
+                  <button id="flow-form-cancel" class="task-drop" type="button">BACK</button>
+                </div>
+              </div>
+            </section>
           </div>
 
           <aside class="pixel-dog" aria-hidden="true">
@@ -242,8 +237,9 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=5"></script>
-  <script src="/js/desk.js?v=13"></script>
+  <script src="/js/app.js?v=8"></script>
+  <script src="/js/desk.js?v=16"></script>
+  <script src="/js/flow.js?v=7"></script>
   <script src="/js/dashboard.js?v=6"></script>
   <script src="/js/pixel-dog.js?v=23"></script>
 </body>

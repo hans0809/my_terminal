@@ -80,10 +80,6 @@ html, body,
 .crt__desk,
 .app-tile,
 .crt__home,
-.app-calc__pad button,
-.app-pom__face,
-.app-pom__reset,
-.app-note__text,
 .task-new__input,
 .task-log__input,
 .task-detail__name,
@@ -95,6 +91,17 @@ html, body,
 .task-drop,
 .task-drop-ask button,
 .task-foot .task-drop {
+  cursor: var(--cursor-block) !important;
+}
+
+.flow-tab,
+.flow-cat,
+.flow-row,
+.flow-feed,
+.flow-act,
+.flow-search__input,
+.flow-form__input,
+.flow-read__body {
   cursor: var(--cursor-block) !important;
 }
 
@@ -884,104 +891,6 @@ body[data-mode="windowed"] .terminal__info {
   letter-spacing: 0.2em;
   color: var(--fg-dim);
   margin-bottom: clamp(10px, 2vmin, 18px);
-}
-
-.app-note__text {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  resize: none;
-  border: none;
-  background: transparent;
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: clamp(13px, 1.8vmin, 16px);
-  line-height: 1.55;
-  letter-spacing: 0.02em;
-  caret-color: var(--fg-time);
-  outline: none;
-  user-select: text;
-}
-
-.app-pom__face {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  font-family: var(--font);
-  font-size: clamp(42px, 12vmin, 72px);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--fg-time);
-}
-
-.app-pom__reset {
-  align-self: center;
-  background: none;
-  border: none;
-  padding: 8px 12px;
-  font-family: var(--font);
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: var(--fg-dim);
-}
-
-.app-clip__text {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--font);
-  font-size: clamp(12px, 1.6vmin, 15px);
-  line-height: 1.5;
-  color: var(--fg);
-}
-
-.app-calc__display {
-  min-height: 1.4em;
-  margin-bottom: 12px;
-  text-align: right;
-  font-size: clamp(28px, 7vmin, 42px);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--fg-time);
-  font-variant-numeric: tabular-nums;
-}
-
-.app-calc__pad {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: 6px;
-  flex: 1;
-  min-height: 0;
-}
-
-.app-calc__pad button {
-  background: var(--fg-bar-empty);
-  border: 1px solid var(--line);
-  color: var(--fg);
-  font-family: var(--font);
-  font-size: clamp(16px, 3vmin, 22px);
-}
-
-.app-calc__pad button:active {
-  background: var(--line);
-}
-
-.app-calc__pad .is-eq {
-  grid-column: 4;
-  grid-row: 3 / span 2;
-  background: var(--fg);
-  color: var(--screen);
-  border-color: var(--dog-deep);
-}
-
-.app-calc__pad .is-zero {
-  grid-column: 1 / span 2;
 }
 
 .task-heading {

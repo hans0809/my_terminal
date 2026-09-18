@@ -1,10 +1,8 @@
 /**
- * Desk OS — 桌面图标格 + 四个 App
+ * Desk OS — 桌面图标格 + TASK
  */
 
 (function () {
-  const POM_SEC = 25 * 60;
-
   document.querySelectorAll('.app-tile').forEach((btn) => {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -13,206 +11,6 @@
       }
     });
   });
-
-  const noteEl = document.getElementById('note-text');
-  let noteTimer = 0;
-  let noteLoaded = false;
-
-  function saveNote(text) {
-    try {
-      localStorage.setItem('desk-os-note', text);
-    } catch {
-      /* ignore */
-    }
-    fetch('/api/note', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    }).catch(() => {});
-  }
-
-  async function loadNote() {
-    let text = '';
-    try {
-      const res = await fetch('/api/note');
-      if (res.ok) {
-        const data = await res.json();
-        text = data.text || '';
-      }
-    } catch {
-      try {
-        text = localStorage.getItem('desk-os-note') || '';
-      } catch {
-        text = '';
-      }
-    }
-    if (noteEl) noteEl.value = text;
-    noteLoaded = true;
-  }
-
-  if (noteEl) {
-    noteEl.addEventListener('input', () => {
-      if (!noteLoaded) return;
-      clearTimeout(noteTimer);
-      noteTimer = setTimeout(() => saveNote(noteEl.value), 400);
-    });
-  }
-
-  const pomFace = document.getElementById('pom-face');
-  const pomReset = document.getElementById('pom-reset');
-  let pomLeft = POM_SEC;
-  let pomRunning = false;
-  let pomLast = 0;
-  let pomEnded = false;
-
-  function pomLabel(sec) {
-    const s = Math.max(0, Math.ceil(sec));
-    const m = Math.floor(s / 60);
-    const r = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
-  }
-
-  function drawPom() {
-    if (pomFace) pomFace.textContent = pomLabel(pomLeft);
-  }
-
-  function tickPom(ts) {
-    if (!pomRunning) return;
-    if (!pomLast) pomLast = ts;
-    const dt = (ts - pomLast) / 1000;
-    pomLast = ts;
-    pomLeft -= dt;
-    if (pomLeft <= 0) {
-      pomLeft = 0;
-      pomRunning = false;
-      pomEnded = true;
-      drawPom();
-      if (window.DeskOS && typeof window.DeskOS.flashEink === 'function') {
-        window.DeskOS.flashEink();
-      }
-      return;
-    }
-    drawPom();
-    requestAnimationFrame(tickPom);
-  }
-
-  function togglePom() {
-    if (pomEnded || pomLeft <= 0) {
-      pomLeft = POM_SEC;
-      pomEnded = false;
-      pomRunning = true;
-      pomLast = 0;
-      drawPom();
-      requestAnimationFrame(tickPom);
-      return;
-    }
-    pomRunning = !pomRunning;
-    if (pomRunning) {
-      pomLast = 0;
-      requestAnimationFrame(tickPom);
-    }
-  }
-
-  function resetPom() {
-    pomRunning = false;
-    pomEnded = false;
-    pomLeft = POM_SEC;
-    pomLast = 0;
-    drawPom();
-  }
-
-  if (pomFace) pomFace.addEventListener('click', togglePom);
-  if (pomReset) pomReset.addEventListener('click', resetPom);
-  drawPom();
-
-  const clipEl = document.getElementById('clip-text');
-
-  async function loadClip() {
-    if (!clipEl) return;
-    clipEl.textContent = '';
-    try {
-      const res = await fetch('/api/clipboard');
-      if (!res.ok) throw new Error('clip');
-      const data = await res.json();
-      const text = (data.text || '').trim();
-      clipEl.textContent = text || '—';
-    } catch {
-      clipEl.textContent = '—';
-    }
-  }
-
-  const calcDisplay = document.getElementById('calc-display');
-  let calcAcc = null;
-  let calcOp = '';
-  let calcInput = '0';
-  let calcFresh = true;
-
-  function showCalc() {
-    if (!calcDisplay) return;
-    const raw = calcFresh && calcAcc != null && calcOp ? String(calcAcc) : calcInput;
-    const text = raw.length > 12 ? raw.slice(0, 12) : raw;
-    calcDisplay.textContent = text;
-  }
-
-  function calcNum(n) {
-    if (calcFresh) {
-      calcInput = n === '.' ? '0.' : n;
-      calcFresh = false;
-    } else if (n === '.') {
-      if (!calcInput.includes('.')) calcInput += '.';
-    } else if (calcInput === '0') {
-      calcInput = n;
-    } else if (calcInput.length < 12) {
-      calcInput += n;
-    }
-    showCalc();
-  }
-
-  function calcApply() {
-    const cur = Number(calcInput);
-    if (calcAcc == null || !calcOp) {
-      calcAcc = cur;
-      return;
-    }
-    let next = calcAcc;
-    if (calcOp === '+') next += cur;
-    else if (calcOp === '-') next -= cur;
-    else if (calcOp === '*') next *= cur;
-    else if (calcOp === '/') next = cur === 0 ? 0 : calcAcc / cur;
-    calcAcc = Number.isFinite(next) ? Number(next.toPrecision(10)) : 0;
-    calcInput = String(calcAcc);
-  }
-
-  function calcPress(key) {
-    if (key === 'C') {
-      calcAcc = null;
-      calcOp = '';
-      calcInput = '0';
-      calcFresh = true;
-      showCalc();
-      return;
-    }
-    if (key === '=' ) {
-      calcApply();
-      calcOp = '';
-      calcFresh = true;
-      showCalc();
-      return;
-    }
-    if ('+-*/'.includes(key)) {
-      if (!calcFresh) calcApply();
-      calcOp = key;
-      calcFresh = true;
-      showCalc();
-      return;
-    }
-    calcNum(key);
-  }
-
-  document.querySelectorAll('.app-calc__pad button').forEach((btn) => {
-    btn.addEventListener('click', () => calcPress(btn.dataset.key));
-  });
-  showCalc();
 
   const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
                   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -627,23 +425,14 @@
 
   window.DeskApps = {
     onEnter(id) {
-      if (id === 'note' && !noteLoaded) loadNote();
-      if (id === 'note' && noteEl) {
-        setTimeout(() => noteEl.focus(), 40);
-      }
-      if (id === 'clip') loadClip();
       if (id === 'task') {
         showTaskList();
         loadTasks();
         if (taskNewInput) setTimeout(() => taskNewInput.focus(), 40);
       }
+      if (id === 'flow' && window.FlowApp) window.FlowApp.onEnter();
     },
     onLeave(id) {
-      if (id === 'note' && noteEl) {
-        clearTimeout(noteTimer);
-        saveNote(noteEl.value);
-        noteEl.blur();
-      }
       if (id === 'task') {
         if (taskLoaded) saveTasks();
         beatEditing = false;
@@ -651,15 +440,18 @@
         if (taskNewInput) taskNewInput.blur();
         if (taskLogInput) taskLogInput.blur();
       }
+      if (id === 'flow' && window.FlowApp) window.FlowApp.onLeave();
     },
     onHome() {
       if (window.DeskOS && window.DeskOS.app() === 'task' && taskOpenId) {
         showTaskList();
         return true;
       }
+      if (window.FlowApp && window.FlowApp.onHome()) return true;
       return false;
     },
-    onEscape(e) {
+    onEscape() {
+      if (window.FlowApp && window.FlowApp.onEscape()) return true;
       if (!(window.DeskOS && window.DeskOS.app() === 'task')) return false;
       if (beatEditing) {
         const input = document.querySelector('.task-beat__edit');
