@@ -4,93 +4,217 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Desk OS</title>
-  <link rel="stylesheet" href="/css/style.css?v=11">
+  <link rel="stylesheet" href="/css/style.css?v=24">
 </head>
-<body data-mode="windowed">
+<body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
     <div id="crt-monitor" class="crt is-on is-booting">
       <div class="crt__bezel">
         <div id="crt-screen" class="crt__screen">
-          <div class="crt-content">
-            <main class="terminal">
-              <header class="terminal__head">
-                <div id="date" class="terminal__date">--- / --- --</div>
-                <div id="time-text" class="terminal__time">--:--</div>
-                <div id="weather" class="terminal__weather"></div>
-              </header>
+          <div id="layer-status" class="layer is-on">
+            <div class="crt-content">
+              <main class="terminal">
+                <header class="terminal__head">
+                  <div id="date" class="terminal__date">--- / --- --</div>
+                  <div id="time-text" class="terminal__time">--:--</div>
+                  <div id="weather" class="terminal__weather"></div>
+                </header>
 
-              <div class="terminal__status-line">
-                <span id="system-status">SYSTEM ONLINE</span>
-              </div>
+                <div class="terminal__status-line">
+                  <span id="system-status">SYSTEM ONLINE</span>
+                </div>
 
-              <section class="terminal__metrics">
-                <div class="term-row">
-                  <span class="term-row__label">CPU</span>
-                  <span id="cpu-bar" class="term-row__bar">----------</span>
-                  <span id="cpu-val" class="term-row__val">--%</span>
-                </div>
-                <div class="term-row">
-                  <span class="term-row__label">GPU</span>
-                  <span id="gpu-bar" class="term-row__bar">----------</span>
-                  <span id="gpu-val" class="term-row__val">--</span>
-                </div>
-                <div class="term-row">
-                  <span class="term-row__label">MEM</span>
-                  <span id="ram-bar" class="term-row__bar">----------</span>
-                  <span id="ram-val" class="term-row__val">--</span>
-                </div>
-                <div class="term-row" id="vram-row">
-                  <span class="term-row__label">VRAM</span>
-                  <span id="vram-bar" class="term-row__bar">----------</span>
-                  <span id="vram-val" class="term-row__val">--</span>
-                </div>
-                <div class="term-row" id="cur-row">
-                  <span class="term-row__label">CUR</span>
-                  <span id="cur-bar" class="term-row__bar">----------</span>
-                  <span id="cur-val" class="term-row__val">--%</span>
-                </div>
-                <div class="term-row" id="oth-row">
-                  <span class="term-row__label">OTH</span>
-                  <span id="oth-bar" class="term-row__bar">----------</span>
-                  <span id="oth-val" class="term-row__val">--%</span>
-                </div>
-              </section>
+                <section class="terminal__metrics">
+                  <div class="term-row">
+                    <span class="term-row__label">CPU</span>
+                    <span id="cpu-bar" class="term-row__bar">----------</span>
+                    <span id="cpu-val" class="term-row__val">--%</span>
+                  </div>
+                  <div class="term-row">
+                    <span class="term-row__label">GPU</span>
+                    <span id="gpu-bar" class="term-row__bar">----------</span>
+                    <span id="gpu-val" class="term-row__val">--</span>
+                  </div>
+                  <div class="term-row">
+                    <span class="term-row__label">MEM</span>
+                    <span id="ram-bar" class="term-row__bar">----------</span>
+                    <span id="ram-val" class="term-row__val">--</span>
+                  </div>
+                  <div class="term-row" id="vram-row">
+                    <span class="term-row__label">VRAM</span>
+                    <span id="vram-bar" class="term-row__bar">----------</span>
+                    <span id="vram-val" class="term-row__val">--</span>
+                  </div>
+                  <div class="term-row" id="cur-row">
+                    <span class="term-row__label">CUR</span>
+                    <span id="cur-bar" class="term-row__bar">----------</span>
+                    <span id="cur-val" class="term-row__val">--%</span>
+                  </div>
+                  <div class="term-row" id="oth-row">
+                    <span class="term-row__label">OTH</span>
+                    <span id="oth-bar" class="term-row__bar">----------</span>
+                    <span id="oth-val" class="term-row__val">--%</span>
+                  </div>
+                </section>
 
-              <div class="terminal__rule" aria-hidden="true"></div>
+                <div class="terminal__rule" aria-hidden="true"></div>
 
-              <section class="terminal__info">
-                <div class="info-row">
-                  <span class="info-row__label">NET</span>
-                  <span class="info-row__val">↓ <span id="net-down">--</span>  ↑ <span id="net-up">--</span></span>
-                </div>
-                <div class="info-row">
-                  <span class="info-row__label">DSK</span>
-                  <span id="disk-summary" class="info-row__val">--</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-row__label">PING</span>
-                  <span class="info-row__val"><span id="ping-host">--</span>  <span id="ping">--</span></span>
-                </div>
-                <div class="info-row" id="tmp-row">
-                  <span class="info-row__label">TMP</span>
-                  <span id="tmp-summary" class="info-row__val">--</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-row__label">KEY</span>
-                  <span id="key-summary" class="info-row__val">--</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-row__label">UP</span>
-                  <span id="uptime" class="info-row__val">--</span>
-                </div>
-                <div class="info-row is-hidden" id="rst-row">
-                  <span class="info-row__label">RST</span>
-                  <span id="rst-val" class="info-row__val">--</span>
-                </div>
-              </section>
-            </main>
-            <button id="hidden-entry" class="hidden-entry" aria-label="enter" title="">·</button>
+                <section class="terminal__info">
+                  <div class="info-row">
+                    <span class="info-row__label">NET</span>
+                    <span class="info-row__val">↓ <span id="net-down">--</span>  ↑ <span id="net-up">--</span></span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-row__label">DSK</span>
+                    <span id="disk-summary" class="info-row__val">--</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-row__label">PING</span>
+                    <span class="info-row__val"><span id="ping-host">--</span>  <span id="ping">--</span></span>
+                  </div>
+                  <div class="info-row" id="tmp-row">
+                    <span class="info-row__label">TMP</span>
+                    <span id="tmp-summary" class="info-row__val">--</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-row__label">KEY</span>
+                    <span id="key-summary" class="info-row__val">--</span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-row__label">UP</span>
+                    <span id="uptime" class="info-row__val">--</span>
+                  </div>
+                  <div class="info-row is-hidden" id="rst-row">
+                    <span class="info-row__label">RST</span>
+                    <span id="rst-val" class="info-row__val">--</span>
+                  </div>
+                </section>
+              </main>
+            </div>
           </div>
+
+          <div id="layer-desk" class="layer">
+            <div class="springboard">
+              <button class="app-tile" type="button" data-app="note">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="8" y="5" width="16" height="22"/>
+                    <path d="M12 11h8M12 16h8M12 21h5"/>
+                  </svg>
+                </span>
+                <span class="app-name">NOTE</span>
+              </button>
+              <button class="app-tile" type="button" data-app="pom">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="16" cy="17" r="9"/>
+                    <path d="M16 17V11M16 6v2M12 6h8"/>
+                  </svg>
+                </span>
+                <span class="app-name">POM</span>
+              </button>
+              <button class="app-tile" type="button" data-app="clip">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="12" height="15"/>
+                    <path d="M13 9V7h6v2"/>
+                    <rect x="12" y="6" width="11" height="14"/>
+                  </svg>
+                </span>
+                <span class="app-name">CLIP</span>
+              </button>
+              <button class="app-tile" type="button" data-app="calc">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="8" y="6" width="16" height="20"/>
+                    <path d="M11 10h10M12 16h2M18 16h2M12 21h2M18 21h2"/>
+                  </svg>
+                </span>
+                <span class="app-name">CALC</span>
+              </button>
+              <button class="app-tile" type="button" data-app="task">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
+                    <rect x="15" y="6" width="2" height="20"/>
+                    <rect x="13" y="8" width="6" height="3"/>
+                    <rect x="13" y="15" width="6" height="3"/>
+                    <rect x="13" y="22" width="6" height="3"/>
+                  </svg>
+                </span>
+                <span class="app-name">TASK</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="layer-app" class="layer">
+            <section id="app-note" class="app-page">
+              <h1 class="app-page__title">NOTE</h1>
+              <textarea id="note-text" class="app-note__text" spellcheck="false" maxlength="20000" placeholder=""></textarea>
+            </section>
+
+            <section id="app-pom" class="app-page">
+              <h1 class="app-page__title">POM</h1>
+              <button id="pom-face" class="app-pom__face" type="button">25:00</button>
+              <button id="pom-reset" class="app-pom__reset" type="button">RESET</button>
+            </section>
+
+            <section id="app-clip" class="app-page">
+              <h1 class="app-page__title">CLIP</h1>
+              <pre id="clip-text" class="app-clip__text"></pre>
+            </section>
+
+            <section id="app-calc" class="app-page">
+              <h1 class="app-page__title">CALC</h1>
+              <div id="calc-display" class="app-calc__display">0</div>
+              <div class="app-calc__pad">
+                <button type="button" data-key="C">C</button>
+                <button type="button" data-key="/">/</button>
+                <button type="button" data-key="*">×</button>
+                <button type="button" data-key="-">−</button>
+                <button type="button" data-key="7">7</button>
+                <button type="button" data-key="8">8</button>
+                <button type="button" data-key="9">9</button>
+                <button type="button" data-key="+">+</button>
+                <button type="button" data-key="4">4</button>
+                <button type="button" data-key="5">5</button>
+                <button type="button" data-key="6">6</button>
+                <button type="button" data-key="=" class="is-eq">=</button>
+                <button type="button" data-key="1">1</button>
+                <button type="button" data-key="2">2</button>
+                <button type="button" data-key="3">3</button>
+                <button type="button" data-key="0" class="is-zero">0</button>
+                <button type="button" data-key=".">.</button>
+              </div>
+            </section>
+
+            <section id="app-task" class="app-page">
+              <button id="task-heading" class="app-page__title task-heading" type="button">TASK</button>
+              <div id="task-list" class="task-list is-on">
+                <div id="task-rows" class="task-rows"></div>
+                <form id="task-new" class="task-new" autocomplete="off">
+                  <span class="task-prompt">+</span>
+                  <input id="task-new-input" class="task-new__input" maxlength="80" spellcheck="false">
+                </form>
+              </div>
+              <div id="task-detail" class="task-detail">
+                <input id="task-detail-name" class="task-detail__name" maxlength="80" spellcheck="false">
+                <div id="task-timeline" class="task-timeline"></div>
+                <form id="task-log" class="task-log" autocomplete="off">
+                  <span class="task-prompt">+</span>
+                  <input id="task-log-input" class="task-log__input" maxlength="200" spellcheck="false">
+                </form>
+                <button id="task-drop" class="task-drop" type="button">DROP</button>
+                <div id="task-drop-ask" class="task-drop-ask">
+                  <p id="task-drop-ask-text" class="task-drop-ask__text">DROP THIS?</p>
+                  <div class="task-drop-ask__row">
+                    <button id="task-drop-yes" class="task-drop" type="button">DROP</button>
+                    <button id="task-drop-keep" class="task-drop" type="button">KEEP</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
           <aside class="pixel-dog" aria-hidden="true">
             <span class="pixel-dog__eat" id="pixel-dog-eat" aria-hidden="true"></span>
             <span class="pixel-dog__say" id="pixel-dog-say">z</span>
@@ -101,20 +225,21 @@
           <div class="eink-flash" id="eink-flash" aria-hidden="true"></div>
         </div>
       </div>
-      <button id="power-btn" class="crt__power" type="button" aria-pressed="true" aria-label="power">
+      <button id="desk-btn" class="crt__key crt__desk" type="button" aria-pressed="false" aria-label="apps">
+        APP
+      </button>
+      <button id="power-btn" class="crt__power crt__key" type="button" aria-pressed="true" aria-label="power">
         I/O
+      </button>
+      <button id="home-btn" class="crt__home" type="button" aria-label="home">
+        <span class="crt__home-mark"></span>
       </button>
     </div>
   </div>
 
-  <div id="view-desk" class="view">
-    <main class="desk-placeholder">
-      <p class="desk-placeholder__hint">—</p>
-    </main>
-  </div>
-
-  <script src="/js/app.js?v=2"></script>
+  <script src="/js/app.js?v=5"></script>
+  <script src="/js/desk.js?v=12"></script>
   <script src="/js/dashboard.js?v=6"></script>
-  <script src="/js/pixel-dog.js?v=21"></script>
+  <script src="/js/pixel-dog.js?v=23"></script>
 </body>
 </html>

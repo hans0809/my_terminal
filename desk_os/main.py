@@ -168,7 +168,23 @@ def main():
         html, body, #view-dashboard, #view-dashboard * {{
             cursor: url('{url}/assets/cursor-cross.png?v=2') 16 16, crosshair !important;
         }}
-        .hidden-entry:hover {{
+        .crt__key,
+        .app-tile,
+        .crt__home,
+        .app-calc__pad button,
+        .app-pom__face,
+        .app-pom__reset,
+        .app-note__text,
+        .task-new__input,
+        .task-log__input,
+        .task-detail__name,
+        .task-beat__text,
+        .task-beat__edit,
+        .task-beat__drop,
+        .task-row,
+        .task-heading,
+        .task-drop,
+        .task-drop-ask button {{
             cursor: url('{url}/assets/cursor-block.png?v=2') 16 16, text !important;
         }}
         """

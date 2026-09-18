@@ -1134,7 +1134,7 @@
   });
   if (crtScreen) {
     crtScreen.addEventListener('click', (e) => {
-      if (e.target.closest && e.target.closest('#hidden-entry')) return;
+      if (document.body.dataset.layer && document.body.dataset.layer !== 'status') return;
       if (treatBusy || treat) return;
       dropTreat(e.clientX, e.clientY);
     });
