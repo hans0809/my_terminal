@@ -9,7 +9,8 @@ from typing import Any
 from backend.article_fetch import fetch_article_html, is_richer, looks_teaser, proxied_body
 from backend.feed_service import CATEGORIES, _connect, _row
 
-ARTICLE_LIMIT = 300
+ARTICLE_LIMIT = 80
+PAGE_SIZE = 40
 
 
 def _when_expr() -> str:
@@ -49,9 +50,16 @@ def list_articles(
     read_later: bool | None = None,
     search: str = "",
     date_range: str = "all",
-    limit: int = 120,
+    lang: str = "",
+    feed_id: int = 0,
+    offset: int = 0,
+    limit: int = PAGE_SIZE,
 ) -> dict[str, Any]:
-    limit = max(1, min(int(limit or 120), ARTICLE_LIMIT))
+    limit = max(1, min(int(limit or PAGE_SIZE), ARTICLE_LIMIT))
+    try:
+        offset = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        offset = 0
     where = ["1=1"]
     args: list[Any] = []
     cat = (category or "").strip().upper()
@@ -75,21 +83,49 @@ def list_articles(
     if start:
         where.append(f"{_when_expr()} >= ?")
         args.append(start)
+    lang = (lang or "").strip().upper()
+    if lang in {"ZH", "EN"}:
+        where.append("a.lang = ?")
+        args.append(lang)
+    try:
+        fid = int(feed_id or 0)
+    except (TypeError, ValueError):
+        fid = 0
+    if fid > 0:
+        where.append("a.feed_id = ?")
+        args.append(fid)
 
-    sql = f"""
-        SELECT a.id, a.feed_id, a.title, a.summary, a.url, a.author,
-               a.category AS category, f.category AS feed_category,
-               a.published_at, a.fetched_at, a.is_read, a.is_saved, a.is_read_later,
-               f.name AS source
+    clause = " AND ".join(where)
+    join_sql = f"""
         FROM articles a
         JOIN feeds f ON f.id = a.feed_id
-        WHERE {' AND '.join(where)}
-        ORDER BY {_when_expr()} DESC, a.id DESC
-        LIMIT ?
+        WHERE {clause}
     """
-    args.append(limit)
     with _connect() as conn:
-        rows = conn.execute(sql, args).fetchall()
+        total = int(conn.execute(f"SELECT COUNT(*) {join_sql}", args).fetchone()[0])
+        if total and offset >= total:
+            offset = ((total - 1) // limit) * limit
+        rows = conn.execute(
+            f"""
+            SELECT a.id, a.feed_id, a.title, a.summary, a.url, a.author,
+                   a.category AS category, f.category AS feed_category,
+                   a.published_at, a.fetched_at, a.is_read, a.is_saved, a.is_read_later,
+                   f.name AS source
+            {join_sql}
+            ORDER BY {_when_expr()} DESC, a.id DESC
+            LIMIT ? OFFSET ?
+            """,
+            [*args, limit, offset],
+        ).fetchall()
+        sources = conn.execute(
+            """
+            SELECT f.id, f.name, COUNT(a.id) AS n
+            FROM feeds f
+            JOIN articles a ON a.feed_id = f.id
+            GROUP BY f.id
+            ORDER BY n DESC, f.name ASC
+            """
+        ).fetchall()
     articles = []
     for row in rows:
         item = _row(row)
@@ -100,7 +136,19 @@ def list_articles(
         summary = item.pop("summary", "") or ""
         item["excerpt"] = summary.replace("\n", " ").strip()[:160]
         articles.append(item)
-    return {"articles": articles, "n": len(articles), "counts": counts()}
+    pages = max(1, (total + limit - 1) // limit) if total else 1
+    page = (offset // limit) + 1 if total else 1
+    return {
+        "articles": articles,
+        "n": len(articles),
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "limit": limit,
+        "offset": offset,
+        "sources": [{"id": int(r["id"]), "name": r["name"] or "", "n": int(r["n"])} for r in sources],
+        "counts": counts(),
+    }
 
 
 def get_article(aid: int, proxy: bool = True) -> dict[str, Any] | None:

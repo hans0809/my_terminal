@@ -202,6 +202,11 @@ def api_feeds_refresh_all():
     return feed_service.fetch_all()
 
 
+@app.post("/api/feeds/prune")
+def api_feeds_prune():
+    return feed_service.drop_invalid_feeds()
+
+
 @app.get("/api/articles")
 def api_articles_list(
     category: str = "",
@@ -210,7 +215,10 @@ def api_articles_list(
     read_later: str | None = None,
     search: str = "",
     date_range: str = "all",
-    limit: int = 120,
+    lang: str = "",
+    feed_id: int = 0,
+    offset: int = 0,
+    limit: int = 40,
 ):
     return article_service.list_articles(
         category=category,
@@ -219,6 +227,9 @@ def api_articles_list(
         read_later=_as_bool(read_later),
         search=search,
         date_range=date_range,
+        lang=lang,
+        feed_id=feed_id,
+        offset=offset,
         limit=limit,
     )
 

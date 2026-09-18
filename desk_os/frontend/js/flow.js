@@ -4,6 +4,7 @@
 
 (function () {
   const CATS = ['AI', 'BIO', 'PAPER', 'TECH', 'HARDWARE', 'OTHER'];
+  const PAGE_SIZE = 40;
   const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
                   'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
@@ -30,20 +31,32 @@
   const formCats = document.getElementById('flow-form-cats');
   const formOk = document.getElementById('flow-form-ok');
   const formCancel = document.getElementById('flow-form-cancel');
+  const pruneBtn = document.getElementById('flow-prune');
+  const sourceEl = document.getElementById('flow-source');
+  const pageEl = document.getElementById('flow-page');
+  const prevBtn = document.getElementById('flow-prev');
+  const nextBtn = document.getElementById('flow-next');
 
   let view = 'list';
   let tab = 'all';
   let range = 'all';
   let category = '';
+  let lang = '';
+  let feedId = 0;
   let search = '';
+  let page = 1;
+  let pages = 1;
+  let total = 0;
   let articles = [];
   let feeds = [];
+  let sources = [];
   let counts = { all: 0, unread: 0, saved: 0, later: 0, categories: {} };
   let openId = 0;
   let openItem = null;
   let fetching = false;
   let dropArmed = 0;
   let dropTimer = 0;
+  let pruneArmed = false;
   let editId = 0;
   let formCat = 'OTHER';
   let flashTimer = 0;
@@ -111,7 +124,10 @@
     if (tab === 'later') params.set('read_later', 'true');
     if (search) params.set('search', search);
     if (range && range !== 'all') params.set('date_range', range);
-    params.set('limit', '200');
+    if (lang) params.set('lang', lang);
+    if (feedId) params.set('feed_id', String(feedId));
+    params.set('limit', String(PAGE_SIZE));
+    params.set('offset', String((Math.max(1, page) - 1) * PAGE_SIZE));
     return params.toString();
   }
 
@@ -121,6 +137,9 @@
     });
     document.querySelectorAll('#flow-range .flow-tab').forEach((btn) => {
       btn.classList.toggle('is-on', btn.dataset.range === range);
+    });
+    document.querySelectorAll('#flow-lang .flow-tab').forEach((btn) => {
+      btn.classList.toggle('is-on', (btn.dataset.lang || '') === lang);
     });
   }
 
@@ -144,12 +163,35 @@
     }).join('');
   }
 
+  function renderSources() {
+    if (!sourceEl) return;
+    const opts = ['<option value="">ALL SOURCES</option>'];
+    sources.forEach((src) => {
+      const id = Number(src.id);
+      const label = `${src.name || 'feed'} · ${Number(src.n) || 0}`;
+      opts.push(`<option value="${id}"${id === feedId ? ' selected' : ''}>${escapeHtml(label)}</option>`);
+    });
+    sourceEl.innerHTML = opts.join('');
+    if (feedId && !sources.some((src) => Number(src.id) === feedId)) {
+      feedId = 0;
+      sourceEl.value = '';
+    }
+  }
+
+  function renderPager() {
+    if (pageEl) pageEl.textContent = total ? `${page} / ${pages}` : '0 / 0';
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= pages || !total;
+  }
+
   function renderList() {
     renderTabs();
     renderCats();
+    renderSources();
+    renderPager();
     if (!rows) return;
     if (search) {
-      flash(`${articles.length} RESULTS`);
+      flash(`${total} RESULTS`);
     }
     if (!articles.length) {
       rows.innerHTML = `<p class="flow-empty">${search ? 'NO RESULTS' : 'NO FLOW YET'}</p>`;
@@ -164,6 +206,7 @@
         </span>
       </button>
     `).join('');
+    rows.scrollTop = 0;
   }
 
   function renderRead(item) {
@@ -197,6 +240,7 @@
     if (!feedRows) return;
     if (!feeds.length) {
       feedRows.innerHTML = '<p class="flow-empty">NO SOURCES</p>';
+      renderPrune();
       return;
     }
     const groups = {};
@@ -212,7 +256,7 @@
         <section class="flow-group">
           <h2 class="flow-group__name">${cat}</h2>
           ${list.map((feed) => `
-            <article class="flow-feed${feed.enabled ? '' : ' is-off'}" data-id="${feed.id}">
+            <article class="flow-feed${feed.enabled ? '' : ' is-off'}${feed.error ? ' is-err' : ''}" data-id="${feed.id}">
               <div class="flow-feed__top">
                 <span class="flow-row__mark">${feed.enabled ? '●' : '○'}</span>
                 <div>
@@ -231,6 +275,18 @@
         </section>
       `;
     }).join('');
+    renderPrune();
+  }
+
+  function invalidFeeds() {
+    return feeds.filter((feed) => String(feed.error || '').trim());
+  }
+
+  function renderPrune() {
+    if (!pruneBtn || pruneArmed) return;
+    const n = invalidFeeds().length;
+    pruneBtn.textContent = n ? `CLEAR INVALID · ${n}` : 'CLEAR INVALID';
+    pruneBtn.classList.remove('is-sure');
   }
 
   function renderFormCats() {
@@ -240,6 +296,11 @@
     `).join('');
   }
 
+  function resetList() {
+    page = 1;
+    loadList();
+  }
+
   async function loadList() {
     try {
       const res = await fetch(`/api/articles?${query()}`);
@@ -247,6 +308,10 @@
       const data = await res.json();
       articles = Array.isArray(data.articles) ? data.articles : [];
       counts = data.counts || counts;
+      sources = Array.isArray(data.sources) ? data.sources : sources;
+      total = Number(data.total) || 0;
+      pages = Math.max(1, Number(data.pages) || 1);
+      page = Math.max(1, Number(data.page) || page);
     } catch (err) {
       console.warn('[desk-os] flow load failed', err);
     }
@@ -349,11 +414,52 @@
 
   function disarmDrop() {
     dropArmed = 0;
+    pruneArmed = false;
     clearTimeout(dropTimer);
     document.querySelectorAll('.flow-act.is-sure').forEach((btn) => {
       btn.classList.remove('is-sure');
       if (btn.dataset.act === 'drop') btn.textContent = 'DELETE';
     });
+    renderPrune();
+  }
+
+  async function pruneInvalid() {
+    const n = invalidFeeds().length;
+    if (!n) {
+      flash('NO INVALID');
+      return;
+    }
+    if (!pruneArmed) {
+      dropArmed = 0;
+      document.querySelectorAll('.flow-act.is-sure').forEach((btn) => {
+        btn.classList.remove('is-sure');
+        if (btn.dataset.act === 'drop') btn.textContent = 'DELETE';
+      });
+      pruneArmed = true;
+      if (pruneBtn) {
+        pruneBtn.classList.add('is-sure');
+        pruneBtn.textContent = `SURE? · ${n}`;
+      }
+      clearTimeout(dropTimer);
+      dropTimer = setTimeout(disarmDrop, 2800);
+      return;
+    }
+    pruneArmed = false;
+    if (pruneBtn) pruneBtn.classList.remove('is-sure');
+    flash('PRUNING...');
+    try {
+      const res = await fetch('/api/feeds/prune', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        flash((data.error || 'PRUNE ERROR').toUpperCase());
+      } else {
+        flash(`DROPPED ${Number(data.dropped) || 0}`);
+      }
+    } catch (err) {
+      flash('PRUNE ERROR');
+      console.warn('[desk-os] flow prune failed', err);
+    }
+    await loadFeeds();
   }
 
   async function onFeedAct(act, id) {
@@ -445,7 +551,7 @@
       const btn = e.target.closest('.flow-cat');
       if (!btn) return;
       category = btn.dataset.cat || '';
-      loadList();
+      resetList();
     });
   }
 
@@ -453,13 +559,37 @@
     const btn = e.target.closest('.flow-tab');
     if (!btn || !btn.dataset.tab) return;
     tab = btn.dataset.tab;
-    loadList();
+    resetList();
   });
 
   document.getElementById('flow-range')?.addEventListener('click', (e) => {
     const btn = e.target.closest('.flow-tab');
     if (!btn || !btn.dataset.range) return;
     range = btn.dataset.range;
+    resetList();
+  });
+
+  document.getElementById('flow-lang')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.flow-tab');
+    if (!btn || btn.dataset.lang === undefined) return;
+    lang = btn.dataset.lang || '';
+    resetList();
+  });
+
+  sourceEl?.addEventListener('change', () => {
+    feedId = Number(sourceEl.value) || 0;
+    resetList();
+  });
+
+  prevBtn?.addEventListener('click', () => {
+    if (page <= 1) return;
+    page -= 1;
+    loadList();
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    if (page >= pages) return;
+    page += 1;
     loadList();
   });
 
@@ -467,7 +597,7 @@
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
       search = (searchInput.value || '').trim();
-      loadList();
+      resetList();
     });
   }
 
@@ -482,6 +612,7 @@
   document.getElementById('flow-refresh')?.addEventListener('click', () => refreshAll());
   document.getElementById('flow-sources')?.addEventListener('click', () => showFeeds());
   document.getElementById('flow-add')?.addEventListener('click', () => showForm(null));
+  pruneBtn?.addEventListener('click', () => pruneInvalid());
   formCancel?.addEventListener('click', () => showFeeds());
   formOk?.addEventListener('click', () => saveForm());
 
@@ -557,7 +688,7 @@
     },
     onEscape() {
       if (!isFlow()) return false;
-      if (dropArmed) {
+      if (dropArmed || pruneArmed) {
         disarmDrop();
         return true;
       }

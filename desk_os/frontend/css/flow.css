@@ -116,6 +116,43 @@
   color: var(--fg-time);
 }
 
+.flow-source {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0 6px;
+  margin: 0 0 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.flow-source select {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg-time);
+  font-family: var(--font);
+  font-size: clamp(10px, 1.3vmin, 12px);
+  letter-spacing: 0.12em;
+  outline: none;
+  cursor: pointer;
+}
+
+.flow-pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 0 2px;
+  font-size: clamp(10px, 1.3vmin, 12px);
+  letter-spacing: 0.16em;
+  color: var(--fg-dim);
+}
+
+.flow-pager button:disabled {
+  opacity: 0.35;
+}
+
 .flow-empty {
   padding: 18px 0;
   font-size: clamp(12px, 1.6vmin, 14px);
@@ -298,6 +335,11 @@
   margin-top: 8px;
 }
 
-.flow-act.is-sure {
+.flow-act.is-sure,
+.task-drop.is-sure {
+  color: var(--fg-time);
+}
+
+.flow-feed.is-err .flow-feed__meta {
   color: var(--fg-time);
 }

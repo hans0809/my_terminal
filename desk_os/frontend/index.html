@@ -173,8 +173,24 @@
                   <button class="flow-tab" type="button" data-range="week">WEEK</button>
                   <button class="flow-tab" type="button" data-range="month">MONTH</button>
                 </div>
+                <div id="flow-lang" class="flow-tabs">
+                  <button class="flow-tab is-on" type="button" data-lang="">ANY</button>
+                  <button class="flow-tab" type="button" data-lang="ZH">ZH</button>
+                  <button class="flow-tab" type="button" data-lang="EN">EN</button>
+                </div>
+                <label class="flow-source" for="flow-source">
+                  <span class="task-prompt">@</span>
+                  <select id="flow-source">
+                    <option value="">ALL SOURCES</option>
+                  </select>
+                </label>
                 <div id="flow-cats" class="flow-cats"></div>
                 <div id="flow-rows" class="task-rows"></div>
+                <div id="flow-pager" class="flow-pager">
+                  <button id="flow-prev" class="flow-tab" type="button">PREV</button>
+                  <span id="flow-page">1 / 1</span>
+                  <button id="flow-next" class="flow-tab" type="button">NEXT</button>
+                </div>
                 <div class="task-foot">
                   <button id="flow-refresh" class="task-drop" type="button">REFRESH</button>
                   <button id="flow-sources" class="task-drop" type="button">SOURCES</button>
@@ -196,6 +212,7 @@
               <div id="flow-feeds" class="flow-panel">
                 <div id="flow-feed-rows" class="task-rows"></div>
                 <div class="task-foot">
+                  <button id="flow-prune" class="task-drop" type="button">CLEAR INVALID</button>
                   <button id="flow-add" class="task-drop" type="button">+ ADD FEED</button>
                 </div>
               </div>

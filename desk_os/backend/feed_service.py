@@ -5,7 +5,8 @@ from __future__ import annotations
 import sqlite3
 import threading
 import time
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -18,8 +19,10 @@ USER_AGENT = "DeskOS-FLOW/1.0 (+local)"
 FETCH_TIMEOUT = 18.0
 POLL_TICK = 60
 DEFAULT_INTERVAL = 30
+MAX_FETCH_PER_TICK = 8
 CATEGORIES = ("AI", "BIO", "PAPER", "TECH", "HARDWARE", "OTHER")
 INTERVALS = (15, 30, 60, 360, 0)
+_HAN = re.compile(r"[\u4e00-\u9fff]")
 SEED_FEEDS = (
     ("Hacker News", "https://news.ycombinator.com/rss", "TECH"),
     ("阮一峰的网络日志", "https://www.ruanyifeng.com/blog/atom.xml", "TECH"),
@@ -88,6 +91,7 @@ def _create_schema(conn: sqlite3.Connection) -> None:
           is_saved INTEGER NOT NULL DEFAULT 0,
           is_read_later INTEGER NOT NULL DEFAULT 0,
           body_html TEXT NOT NULL DEFAULT '',
+          lang TEXT NOT NULL DEFAULT '',
           UNIQUE(feed_id, guid),
           FOREIGN KEY(feed_id) REFERENCES feeds(id) ON DELETE CASCADE
         );
@@ -207,6 +211,20 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
     cols = _cols(conn, "articles")
     if "body_html" not in cols:
         conn.execute("ALTER TABLE articles ADD COLUMN body_html TEXT NOT NULL DEFAULT ''")
+        cols.add("body_html")
+    if "lang" not in cols:
+        conn.execute("ALTER TABLE articles ADD COLUMN lang TEXT NOT NULL DEFAULT ''")
+        cols.add("lang")
+    conn.execute("CREATE INDEX IF NOT EXISTS articles_feed ON articles(feed_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS articles_lang ON articles(lang)")
+    if "lang" in cols:
+        rows = conn.execute("SELECT id, title FROM articles WHERE lang = ''").fetchall()
+        for row in rows:
+            conn.execute("UPDATE articles SET lang = ? WHERE id = ?", (detect_lang(row[1]), row[0]))
+
+
+def detect_lang(text: str) -> str:
+    return "ZH" if _HAN.search(text or "") else "EN"
 
 
 def init_db() -> None:
@@ -255,9 +273,10 @@ def list_feeds() -> list[dict[str, Any]]:
     with _connect() as conn:
         rows = conn.execute(
             """
-            SELECT f.*,
-                   (SELECT COUNT(*) FROM articles a WHERE a.feed_id = f.id) AS n
+            SELECT f.*, COUNT(a.id) AS n
             FROM feeds f
+            LEFT JOIN articles a ON a.feed_id = f.id
+            GROUP BY f.id
             ORDER BY f.category ASC, f.id ASC
             """
         ).fetchall()
@@ -313,6 +332,53 @@ def add_feed(name: str, url: str, category: str = "OTHER", update_interval: int 
     return result
 
 
+def bulk_add_feeds(
+    items: list[dict[str, Any]],
+    *,
+    update_interval: int = 360,
+    enabled: bool = True,
+    stagger_minutes: int = 360,
+) -> dict[str, Any]:
+    """Insert many feeds without fetching. Skip invalid or duplicate URLs."""
+    interval = _norm_interval(update_interval)
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.isoformat()
+    added = 0
+    skipped = 0
+    span = max(1, int(stagger_minutes) or 1)
+    with _connect() as conn:
+        existing = {str(row[0]) for row in conn.execute("SELECT url FROM feeds")}
+        seen = set(existing)
+        rows: list[tuple[Any, ...]] = []
+        for item in items:
+            raw = (item.get("url") or "").strip()
+            parsed = urlparse(raw)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                skipped += 1
+                continue
+            raw = parsed.geturl()[:URL_LIMIT]
+            if raw in seen:
+                skipped += 1
+                continue
+            seen.add(raw)
+            name = str(item.get("name") or "").strip()[:TITLE_LIMIT]
+            cat = _norm_category(str(item.get("category") or ""))
+            last = (now_dt - timedelta(minutes=added % span)).isoformat()
+            rows.append((name, raw, cat, 1 if enabled else 0, interval, last, now, ""))
+            added += 1
+        if rows:
+            conn.executemany(
+                """
+                INSERT INTO feeds (
+                  name, url, category, enabled, update_interval,
+                  last_fetch_at, created_at, error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows,
+            )
+    return {"ok": True, "added": added, "skipped": skipped, "total": added + skipped}
+
+
 def update_feed(fid: int, **fields: Any) -> dict[str, Any]:
     item = get_feed(fid)
     if not item:
@@ -356,6 +422,14 @@ def drop_feed(fid: int) -> dict[str, Any]:
     return {"ok": True, "dropped": n}
 
 
+def drop_invalid_feeds() -> dict[str, Any]:
+    with _connect() as conn:
+        n = conn.execute("SELECT COUNT(*) FROM feeds WHERE error != ''").fetchone()[0]
+        conn.execute("DELETE FROM articles WHERE feed_id IN (SELECT id FROM feeds WHERE error != '')")
+        conn.execute("DELETE FROM feeds WHERE error != ''")
+    return {"ok": True, "dropped": int(n)}
+
+
 def _download(url: str) -> bytes:
     import httpx
 
@@ -379,17 +453,18 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
         guid = (item.get("guid") or item.get("url") or item.get("title") or "")[:URL_LIMIT]
         if not guid:
             continue
+        title = (item.get("title") or "")[:TITLE_LIMIT]
         cur = conn.execute(
             """
             INSERT OR IGNORE INTO articles (
               feed_id, guid, title, summary, url, author, category,
-              published_at, fetched_at, is_read, is_saved, is_read_later, body_html
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?)
+              published_at, fetched_at, is_read, is_saved, is_read_later, body_html, lang
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?)
             """,
             (
                 feed_id,
                 guid,
-                (item.get("title") or "")[:TITLE_LIMIT],
+                title,
                 item.get("summary") or "",
                 (item.get("url") or "")[:URL_LIMIT],
                 item.get("author") or "",
@@ -397,6 +472,7 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
                 (item.get("published_at") or "")[:40],
                 now,
                 item.get("body_html") or "",
+                detect_lang(title),
             ),
         )
         new_n += cur.rowcount
@@ -468,10 +544,12 @@ def fetch_due() -> dict[str, Any]:
     due = [f for f in list_feeds() if _due(f, now)]
     if not due:
         return {"ok": True, "new": 0, "feeds": 0}
+    due.sort(key=lambda item: item.get("last_fetch_at") or "")
+    batch = due[:MAX_FETCH_PER_TICK]
     with _lock:
-        results = [fetch_feed(int(f["id"])) for f in due]
+        results = [fetch_feed(int(f["id"])) for f in batch]
         new_n = sum(int(r.get("new") or 0) for r in results)
-        return {"ok": True, "new": new_n, "feeds": len(due)}
+        return {"ok": True, "new": new_n, "feeds": len(batch), "due": len(due)}
 
 
 def start() -> None:
