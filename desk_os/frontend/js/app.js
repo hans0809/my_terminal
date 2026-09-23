@@ -207,6 +207,69 @@
     }
   });
 
+  const TYPE_KEY = 'desk-type';
+  const TYPE_SCALES = [1, 1.2, 1.45, 1.7];
+  const TYPE_NAMES = ['S', 'M', 'L', 'XL'];
+  let typeState = { face: '', size: 0 };
+
+  function readType() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(TYPE_KEY) || '{}');
+      const size = Number(saved.size);
+      return {
+        face: saved.face === 'mono' || saved.face === 'serif' || saved.face === 'sans' ? saved.face : '',
+        size: size >= 0 && size < TYPE_SCALES.length ? size : 0,
+      };
+    } catch {
+      return { face: '', size: 0 };
+    }
+  }
+
+  function applyType() {
+    if (!layerApp) return;
+    if (typeState.face) layerApp.dataset.face = typeState.face;
+    else delete layerApp.dataset.face;
+    layerApp.style.setProperty('--type-scale', String(TYPE_SCALES[typeState.size]));
+    document.querySelectorAll('.type-set__n').forEach((el) => {
+      el.textContent = TYPE_NAMES[typeState.size];
+    });
+    document.querySelectorAll('.type-set__face').forEach((btn) => {
+      const on = btn.dataset.face === typeState.face;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.type-set [data-step]').forEach((btn) => {
+      const step = Number(btn.dataset.step);
+      const blocked = (step < 0 && typeState.size === 0)
+        || (step > 0 && typeState.size === TYPE_SCALES.length - 1);
+      btn.disabled = blocked;
+    });
+  }
+
+  function saveType() {
+    localStorage.setItem(TYPE_KEY, JSON.stringify(typeState));
+    applyType();
+  }
+
+  document.addEventListener('click', (e) => {
+    const faceBtn = e.target.closest('.type-set__face');
+    const stepBtn = e.target.closest('.type-set [data-step]');
+    if (!faceBtn && !stepBtn) return;
+    e.preventDefault();
+    if (faceBtn) {
+      const face = faceBtn.dataset.face;
+      typeState.face = typeState.face === face ? '' : face;
+    }
+    if (stepBtn) {
+      const next = typeState.size + Number(stepBtn.dataset.step);
+      typeState.size = Math.max(0, Math.min(TYPE_SCALES.length - 1, next));
+    }
+    saveType();
+  });
+
+  typeState = readType();
+  applyType();
+
   window.DeskOS = {
     flashEink,
     startBoot,

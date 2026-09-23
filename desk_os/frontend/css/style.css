@@ -90,7 +90,8 @@ html, body,
 .task-heading,
 .task-drop,
 .task-drop-ask button,
-.task-foot .task-drop {
+.task-foot .task-drop,
+.type-set button {
   cursor: var(--cursor-block) !important;
 }
 
@@ -823,6 +824,42 @@ body[data-mode="windowed"] .terminal__info {
   align-items: stretch;
 }
 
+#layer-app {
+  --type-scale: 1;
+}
+
+#layer-app[data-face="mono"] {
+  --read-font: "Courier New", Consolas, monospace;
+}
+
+#layer-app[data-face="serif"] {
+  --read-font: "Source Serif 4", "Noto Serif SC", "Songti SC", Georgia, serif;
+}
+
+#layer-app[data-face="sans"] {
+  --read-font: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+}
+
+#layer-app[data-face] .task-row__name,
+#layer-app[data-face] .task-row__mark,
+#layer-app[data-face] .task-detail__name,
+#layer-app[data-face] .task-beat__text,
+#layer-app[data-face] .task-beat__edit,
+#layer-app[data-face] .task-new__input,
+#layer-app[data-face] .task-log__input,
+#layer-app[data-face] .flow-row__name,
+#layer-app[data-face] .flow-feed__name,
+#layer-app[data-face] .flow-read__title,
+#layer-app[data-face] .flow-read__body,
+#layer-app[data-face] .flow-read__body.is-html h1,
+#layer-app[data-face] .flow-read__body.is-html h2,
+#layer-app[data-face] .flow-read__body.is-html h3,
+#layer-app[data-face] .flow-read__body.is-html h4,
+#layer-app[data-face] .flow-search__input,
+#layer-app[data-face] .flow-form__input {
+  font-family: var(--read-font);
+}
+
 .springboard {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -891,7 +928,8 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .app-page__title {
-  font-size: clamp(10px, 1.4vmin, 12px);
+  font-family: var(--font);
+  font-size: calc(clamp(10px, 1.4vmin, 12px) * var(--type-scale));
   letter-spacing: 0.2em;
   color: var(--fg-dim);
   margin-bottom: clamp(10px, 2vmin, 18px);
@@ -903,6 +941,48 @@ body[data-mode="windowed"] .terminal__info {
   padding: 0;
   text-align: left;
   width: 100%;
+}
+
+.type-set {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0 0 10px;
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font);
+  font-size: calc(11px * var(--type-scale));
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  color: var(--fg);
+  flex-shrink: 0;
+}
+
+.type-set button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  opacity: 0.45;
+}
+
+.type-set button.is-on,
+.type-set__n {
+  opacity: 1;
+}
+
+.type-set button:disabled {
+  opacity: 0.22;
+}
+
+.type-set__size {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .task-list,
@@ -940,7 +1020,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-row__name {
-  font-size: clamp(14px, 2vmin, 17px);
+  font-size: calc(clamp(14px, 2vmin, 17px) * var(--type-scale));
   letter-spacing: 0.04em;
   color: var(--fg-time);
 }
@@ -959,7 +1039,7 @@ body[data-mode="windowed"] .terminal__info {
 .task-prompt {
   color: var(--fg-bar-empty);
   flex-shrink: 0;
-  font-size: clamp(14px, 1.8vmin, 16px);
+  font-size: calc(clamp(14px, 1.8vmin, 16px) * var(--type-scale));
 }
 
 .task-new,
@@ -979,7 +1059,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   color: var(--fg);
   font-family: var(--font);
-  font-size: clamp(13px, 1.8vmin, 16px);
+  font-size: calc(clamp(13px, 1.8vmin, 16px) * var(--type-scale));
   outline: none;
   caret-color: var(--fg-time);
   user-select: text;
@@ -1016,7 +1096,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   color: var(--fg-time);
   font-family: var(--font);
-  font-size: clamp(18px, 3.2vmin, 24px);
+  font-size: calc(clamp(18px, 3.2vmin, 24px) * var(--type-scale));
   font-weight: 600;
   letter-spacing: 0.06em;
   outline: none;
@@ -1041,7 +1121,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-day__date {
-  font-size: clamp(10px, 1.3vmin, 12px);
+  font-size: calc(clamp(10px, 1.3vmin, 12px) * var(--type-scale));
   letter-spacing: 0.18em;
   color: var(--fg-dim);
   margin-bottom: 12px;
@@ -1074,7 +1154,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-beat__time {
-  font-size: clamp(10px, 1.3vmin, 12px);
+  font-size: calc(clamp(10px, 1.3vmin, 12px) * var(--type-scale));
   letter-spacing: 0.04em;
   color: var(--fg-dim);
   padding-top: 1px;
@@ -1091,7 +1171,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-beat__text {
-  font-size: clamp(13px, 1.7vmin, 15px);
+  font-size: calc(clamp(13px, 1.7vmin, 15px) * var(--type-scale));
   line-height: 1.45;
   color: var(--fg);
   padding-top: 0;
@@ -1107,7 +1187,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   color: var(--fg);
   font-family: var(--font);
-  font-size: clamp(13px, 1.7vmin, 15px);
+  font-size: calc(clamp(13px, 1.7vmin, 15px) * var(--type-scale));
   line-height: 1.45;
   outline: none;
   caret-color: var(--fg-time);
@@ -1120,7 +1200,7 @@ body[data-mode="windowed"] .terminal__info {
   border: none;
   padding: 0 0 0 4px;
   font-family: var(--font);
-  font-size: clamp(11px, 1.4vmin, 13px);
+  font-size: calc(clamp(11px, 1.4vmin, 13px) * var(--type-scale));
   line-height: 1.45;
   color: var(--fg-bar-empty);
 }
@@ -1135,7 +1215,7 @@ body[data-mode="windowed"] .terminal__info {
   border: none;
   padding: 6px 0 2px;
   font-family: var(--font);
-  font-size: 10px;
+  font-size: calc(10px * var(--type-scale));
   letter-spacing: 0.2em;
   color: var(--fg-dim);
 }
@@ -1483,8 +1563,14 @@ body[data-mode="windowed"] .terminal__info {
     -webkit-font-smoothing: antialiased;
   }
 
+  .type-set {
+    font-size: calc(18px * var(--type-scale));
+    gap: 18px;
+    margin-bottom: 14px;
+  }
+
   .app-page__title {
-    font-size: 20px;
+    font-size: calc(20px * var(--type-scale));
     letter-spacing: 0.16em;
     margin-bottom: 12px;
   }
@@ -1495,11 +1581,11 @@ body[data-mode="windowed"] .terminal__info {
   }
 
   .task-row__name {
-    font-size: 26px;
+    font-size: calc(26px * var(--type-scale));
   }
 
   .task-row__mark {
-    font-size: 18px;
+    font-size: calc(18px * var(--type-scale));
     color: var(--fg);
     opacity: 0.62;
     -webkit-font-smoothing: antialiased;
@@ -1508,31 +1594,65 @@ body[data-mode="windowed"] .terminal__info {
   .task-prompt,
   .task-new__input,
   .task-log__input {
-    font-size: 26px;
+    font-size: calc(26px * var(--type-scale));
   }
 
   .task-detail__name {
-    font-size: 32px;
+    font-size: calc(32px * var(--type-scale));
   }
 
   .task-day__date,
   .task-beat__time {
-    font-size: 18px;
+    font-size: calc(18px * var(--type-scale));
     font-weight: 400;
     color: var(--fg);
+    letter-spacing: 0.06em;
     opacity: 0.62;
     -webkit-font-smoothing: antialiased;
   }
 
   .task-beat__text,
   .task-beat__edit {
-    font-size: 24px;
+    font-size: calc(24px * var(--type-scale));
   }
 
   .task-drop {
-    font-size: 18px;
+    font-size: calc(18px * var(--type-scale));
     letter-spacing: 0.16em;
     padding: 10px 0 2px;
+  }
+
+  .task-day {
+    margin-bottom: 28px;
+  }
+
+  .task-day__beats::before {
+    left: calc(5.2ch + 20px);
+  }
+
+  .task-beat {
+    grid-template-columns: 5.2ch 18px minmax(0, 1fr) auto;
+    column-gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .task-beat__node {
+    width: 7px;
+    height: 7px;
+    margin: 0.45em auto 0;
+    background: var(--fg);
+  }
+
+  .task-beat__drop {
+    font-size: calc(20px * var(--type-scale));
+    color: var(--fg);
+    opacity: 0.4;
+  }
+
+  .task-new,
+  .task-log,
+  .task-foot {
+    padding-top: 14px;
   }
 
   .pixel-dog {
