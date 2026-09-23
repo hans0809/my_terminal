@@ -1,26 +1,27 @@
-/* Desk OS — E Ink Carta：有限灰阶、纸纹、硬边字形 */
+/* Desk OS — E Ink Carta：平铺冷灰纸、中性颗粒、硬边字形
+   纸色故意少黄：系统护眼再偏暖时落成纸白，而不是在米黄上叠成赭石。 */
 
 :root {
   --bezel: #121210;
   --bezel-ring: clamp(20px, 4vmin, 48px);
   --power-bar: clamp(32px, 5vmin, 40px);
   --home-bar: 36px;
-  --screen: #e4dfd0;
-  --screen-edge: #d6d0c0;
-  --fg-time: #1c1b17;
-  --fg: #2e2d28;
-  --fg-mid: #4a4943;
-  --fg-dim: #6c6a62;
-  --fg-bar: #2a2924;
-  --fg-bar-empty: #c5c0b2;
-  --line: #b4af9f;
-  --dog-ink: #4a4943;
-  --dog-faint: #9a968a;
-  --dog-deep: #1c1b17;
+  --screen: #e2e3de;
+  --fg-time: #1b1c19;
+  --fg: #2c2e2a;
+  --fg-mid: #484a45;
+  --fg-dim: #6a6c66;
+  --fg-bar: #282a26;
+  --fg-bar-empty: #c4c6bf;
+  --line: #b3b5ae;
+  --dog-ink: #484a45;
+  --dog-faint: #989a93;
+  --dog-deep: #1b1c19;
   --font: 'Courier New', Consolas, monospace;
   --cursor-cross: url('/assets/cursor-cross.png?v=2') 16 16, crosshair;
   --cursor-block: url('/assets/cursor-block.png?v=2') 16 16, text;
-  --eink-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.15' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.2 0 0 0 0 0.19 0 0 0 0 0.16 0 0 0 0.42 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+  --eink-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.42' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --eink-speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.16 0 0 0 0 0.15 0 0 0 0.62 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
 }
 
 *,
@@ -154,12 +155,9 @@ html, body,
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background:
-    radial-gradient(120% 90% at 50% 42%, var(--screen) 0%, var(--screen) 58%, var(--screen-edge) 100%);
-  border: 1px solid #3a3934;
-  box-shadow:
-    inset 0 0 0 1px rgba(40, 38, 32, 0.28),
-    inset 0 0 48px rgba(70, 62, 46, 0.06);
+  background: var(--screen);
+  border: 1px solid #323330;
+  box-shadow: inset 0 0 0 1px rgba(32, 34, 32, 0.16);
   transition: background 0.12s step-end;
 }
 
@@ -480,17 +478,17 @@ body[data-mode="windowed"] .pixel-dog canvas {
   visibility: hidden;
 }
 
-/* 纸纤维微粒（仅开机）——不要规则网格，那是纱窗不是墨水 */
+/* 纸纤维：粗纹用柔光铺不平，细粒用正片叠底。都是灰，护眼偏黄时跟着纸一起暖 */
 .crt.is-on .crt__screen::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  opacity: 0.2;
-  mix-blend-mode: multiply;
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
   background-image: var(--eink-grain);
-  background-size: 240px 240px;
+  background-size: 280px 280px;
 }
 
 .crt.is-on .crt__screen::after {
@@ -499,8 +497,10 @@ body[data-mode="windowed"] .pixel-dog canvas {
   inset: 0;
   z-index: 5;
   pointer-events: none;
-  background: radial-gradient(ellipse at 50% 44%, transparent 52%, rgba(86, 78, 60, 0.055) 100%);
+  opacity: 0.55;
   mix-blend-mode: multiply;
+  background-image: var(--eink-speck);
+  background-size: 120px 120px;
 }
 
 .crt.is-off .crt__screen::before,
@@ -529,7 +529,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
   }
   28% {
     opacity: 1;
-    background: #efece3;
+    background: #f3f4f0;
   }
   55% {
     opacity: 0.62;
@@ -1128,24 +1128,30 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-day__beats {
+  --beat-time: calc(clamp(10px, 1.3vmin, 12px) * var(--type-scale));
+  --beat-text: calc(clamp(13px, 1.7vmin, 15px) * var(--type-scale));
+  --beat-gap: 10px;
+  --beat-node: 16px;
   position: relative;
+  font-size: var(--beat-time);
 }
 
 .task-day__beats::before {
   content: '';
   position: absolute;
-  left: calc(4.6ch + 13px);
+  left: calc(6ch + var(--beat-gap) + var(--beat-node) / 2);
   top: 6px;
   bottom: 6px;
   width: 1px;
   background: var(--line);
+  transform: translateX(-0.5px);
 }
 
 .task-beat {
   display: grid;
-  grid-template-columns: 4.6ch 16px 1fr auto;
-  column-gap: 10px;
-  align-items: start;
+  grid-template-columns: 6ch var(--beat-node) minmax(0, 1fr) auto;
+  column-gap: var(--beat-gap);
+  align-items: baseline;
   margin: 0 0 16px;
 }
 
@@ -1154,24 +1160,27 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-beat__time {
-  font-size: calc(clamp(10px, 1.3vmin, 12px) * var(--type-scale));
-  letter-spacing: 0.04em;
+  font-size: 1em;
+  line-height: 1;
+  letter-spacing: 0;
   color: var(--fg-dim);
-  padding-top: 1px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .task-beat__node {
+  align-self: start;
+  justify-self: center;
   width: 7px;
   height: 7px;
-  margin-top: 5px;
+  margin-top: calc((var(--beat-text) * 1.45 - 7px) / 2);
   background: var(--fg-time);
   position: relative;
   z-index: 1;
 }
 
 .task-beat__text {
-  font-size: calc(clamp(13px, 1.7vmin, 15px) * var(--type-scale));
+  font-size: var(--beat-text);
   line-height: 1.45;
   color: var(--fg);
   padding-top: 0;
@@ -1187,7 +1196,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   color: var(--fg);
   font-family: var(--font);
-  font-size: calc(clamp(13px, 1.7vmin, 15px) * var(--type-scale));
+  font-size: var(--beat-text);
   line-height: 1.45;
   outline: none;
   caret-color: var(--fg-time);
@@ -1601,19 +1610,36 @@ body[data-mode="windowed"] .terminal__info {
     font-size: calc(32px * var(--type-scale));
   }
 
+  .task-day__beats {
+    --beat-time: calc(18px * var(--type-scale));
+    --beat-text: calc(24px * var(--type-scale));
+    --beat-gap: 12px;
+    --beat-node: 18px;
+  }
+
   .task-day__date,
   .task-beat__time {
-    font-size: calc(18px * var(--type-scale));
     font-weight: 400;
     color: var(--fg);
-    letter-spacing: 0.06em;
     opacity: 0.62;
     -webkit-font-smoothing: antialiased;
   }
 
+  .task-day__date {
+    letter-spacing: 0.06em;
+  }
+
+  .task-beat__time {
+    letter-spacing: 0;
+  }
+
+  .task-day__date {
+    font-size: calc(18px * var(--type-scale));
+  }
+
   .task-beat__text,
   .task-beat__edit {
-    font-size: calc(24px * var(--type-scale));
+    font-size: var(--beat-text);
   }
 
   .task-drop {
@@ -1626,20 +1652,11 @@ body[data-mode="windowed"] .terminal__info {
     margin-bottom: 28px;
   }
 
-  .task-day__beats::before {
-    left: calc(5.2ch + 20px);
-  }
-
   .task-beat {
-    grid-template-columns: 5.2ch 18px minmax(0, 1fr) auto;
-    column-gap: 12px;
     margin-bottom: 18px;
   }
 
   .task-beat__node {
-    width: 7px;
-    height: 7px;
-    margin: 0.45em auto 0;
     background: var(--fg);
   }
 
