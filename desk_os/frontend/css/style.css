@@ -1180,10 +1180,12 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .task-beat__text {
+  min-width: 0;
   font-size: var(--beat-text);
   line-height: 1.45;
   color: var(--fg);
   padding-top: 0;
+  overflow-wrap: anywhere;
 }
 
 .task-beat__edit {
