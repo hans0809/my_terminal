@@ -60,6 +60,7 @@
   let editId = 0;
   let formCat = 'OTHER';
   let flashTimer = 0;
+  let sourceSig = '';
 
   function escapeHtml(s) {
     return String(s)
@@ -165,17 +166,19 @@
 
   function renderSources() {
     if (!sourceEl) return;
-    const opts = ['<option value="">ALL SOURCES</option>'];
-    sources.forEach((src) => {
-      const id = Number(src.id);
-      const label = `${src.name || 'feed'} · ${Number(src.n) || 0}`;
-      opts.push(`<option value="${id}"${id === feedId ? ' selected' : ''}>${escapeHtml(label)}</option>`);
-    });
-    sourceEl.innerHTML = opts.join('');
-    if (feedId && !sources.some((src) => Number(src.id) === feedId)) {
-      feedId = 0;
-      sourceEl.value = '';
+    const sig = sources.map((src) => `${src.id}:${src.n}:${src.name || ''}`).join('\n');
+    if (sig !== sourceSig) {
+      sourceSig = sig;
+      const opts = ['<option value="">ALL SOURCES</option>'];
+      sources.forEach((src) => {
+        const id = Number(src.id);
+        const label = `${src.name || 'feed'} · ${Number(src.n) || 0}`;
+        opts.push(`<option value="${id}">${escapeHtml(label)}</option>`);
+      });
+      sourceEl.innerHTML = opts.join('');
     }
+    if (feedId && !sources.some((src) => Number(src.id) === feedId)) feedId = 0;
+    sourceEl.value = feedId ? String(feedId) : '';
   }
 
   function renderPager() {
@@ -209,9 +212,26 @@
     rows.scrollTop = 0;
   }
 
+  function readLang(item) {
+    const code = String((item && item.lang) || '').toUpperCase();
+    if (code === 'ZH') return 'zh-Hans';
+    if (code === 'EN') return 'en';
+    return '';
+  }
+
+  function applyReadLang(el, lang) {
+    if (!el) return;
+    if (lang) el.lang = lang;
+    else el.removeAttribute('lang');
+  }
+
   function renderRead(item) {
     if (!item) return;
     openItem = item;
+    const htmlLang = readLang(item);
+    applyReadLang(readPanel, htmlLang);
+    applyReadLang(readTitle, htmlLang);
+    applyReadLang(readBody, htmlLang);
     if (readTitle) readTitle.textContent = item.title || 'untitled';
     const bits = [item.source, item.category, item.author, fmtDate(item.published_at || item.fetched_at)];
     if (readMeta) readMeta.textContent = bits.filter(Boolean).join(' · ').toUpperCase();
@@ -662,14 +682,20 @@
 
   window.FlowApp = {
     onEnter() {
-      showList();
+      openId = 0;
+      openItem = null;
+      dropArmed = 0;
+      editId = 0;
+      setView('list');
       loadList().then(() => {
-        if (!articles.length) refreshAll();
+        if (!articles.length && !search) refreshAll();
       });
     },
     onLeave() {
       disarmDrop();
-      showList();
+      openId = 0;
+      openItem = null;
+      setView('list');
       if (searchInput) searchInput.blur();
       if (formName) formName.blur();
       if (formUrl) formUrl.blur();

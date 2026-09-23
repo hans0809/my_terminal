@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Desk OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=31">
-  <link rel="stylesheet" href="/css/flow.css?v=5">
+  <link rel="stylesheet" href="/css/flow.css?v=8">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -198,8 +201,10 @@
               </div>
 
               <div id="flow-read" class="flow-panel">
-                <h1 id="flow-read-title" class="flow-read__title"></h1>
-                <p id="flow-read-meta" class="flow-read__meta"></p>
+                <header class="flow-read__mast">
+                  <h1 id="flow-read-title" class="flow-read__title"></h1>
+                  <p id="flow-read-meta" class="flow-read__meta"></p>
+                </header>
                 <p id="flow-read-label" class="flow-read__label">ABSTRACT</p>
                 <div id="flow-read-body" class="flow-read__body"></div>
                 <div class="task-foot">
@@ -256,7 +261,7 @@
 
   <script src="/js/app.js?v=8"></script>
   <script src="/js/desk.js?v=16"></script>
-  <script src="/js/flow.js?v=7"></script>
+  <script src="/js/flow.js?v=9"></script>
   <script src="/js/dashboard.js?v=6"></script>
   <script src="/js/pixel-dog.js?v=23"></script>
 </body>

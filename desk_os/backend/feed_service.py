@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from backend.rss_parser import TITLE_LIMIT, URL_LIMIT, parse_feed_bytes
+from backend.rss_parser import TITLE_LIMIT, URL_LIMIT, _iso_from_text, parse_feed_bytes
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB_PATH = DATA_DIR / "flow.db"
@@ -36,12 +36,20 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+# 列表按「有发布时间用发布时间，否则用抓取时间」排序。表达式要和查询里的 ORDER BY 一致，才能命中索引。
+SORT_EXPR = "CASE WHEN published_at = '' THEN fetched_at ELSE published_at END"
+
+
 def _connect() -> sqlite3.Connection:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=12)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA temp_store=MEMORY")
+    conn.execute("PRAGMA cache_size=-64000")
+    conn.execute("PRAGMA mmap_size=268435456")
     return conn
 
 
@@ -221,6 +229,141 @@ def _ensure_columns(conn: sqlite3.Connection) -> None:
         rows = conn.execute("SELECT id, title FROM articles WHERE lang = ''").fetchall()
         for row in rows:
             conn.execute("UPDATE articles SET lang = ? WHERE id = ?", (detect_lang(row[1]), row[0]))
+    _ensure_indexes(conn)
+    _repair_dates(conn)
+    _ensure_fts(conn)
+
+
+def _ensure_indexes(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS articles_when ON articles ({SORT_EXPR} DESC, id DESC)"
+    )
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS articles_cat_when ON articles (category, {SORT_EXPR} DESC, id DESC)"
+    )
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS articles_feed_when ON articles (feed_id, {SORT_EXPR} DESC, id DESC)"
+    )
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS articles_lang_when ON articles (lang, {SORT_EXPR} DESC, id DESC)"
+    )
+    conn.execute(
+        f"CREATE INDEX IF NOT EXISTS articles_read_when ON articles (is_read, {SORT_EXPR} DESC, id DESC)"
+    )
+    conn.execute(
+        f"""
+        CREATE INDEX IF NOT EXISTS articles_saved_when
+        ON articles ({SORT_EXPR} DESC, id DESC)
+        WHERE is_saved = 1
+        """
+    )
+    conn.execute(
+        f"""
+        CREATE INDEX IF NOT EXISTS articles_later_when
+        ON articles ({SORT_EXPR} DESC, id DESC)
+        WHERE is_read_later = 1
+        """
+    )
+
+
+def _repair_dates(conn: sqlite3.Connection) -> None:
+    """把少数非 ISO 发布时间收成统一格式，否则字母开头的日期会排到整库最前面。"""
+    conn.execute("CREATE TABLE IF NOT EXISTS flow_meta (k TEXT PRIMARY KEY, v TEXT NOT NULL)")
+    if conn.execute("SELECT 1 FROM flow_meta WHERE k = 'published_iso_v2'").fetchone():
+        return
+    rows = conn.execute(
+        """
+        SELECT id, published_at FROM articles
+        WHERE published_at != ''
+          AND published_at NOT GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*'
+        """
+    ).fetchall()
+    fixed = 0
+    for row in rows:
+        iso = _iso_from_text(row[1])
+        if len(iso) >= 10 and iso[4] == "-" and iso[:4].isdigit():
+            nxt = iso[:40]
+        else:
+            nxt = ""
+        if nxt != row[1]:
+            conn.execute("UPDATE articles SET published_at = ? WHERE id = ?", (nxt, row[0]))
+            fixed += 1
+    cutoff = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    future = conn.execute(
+        "SELECT id FROM articles WHERE published_at > ?",
+        (cutoff,),
+    ).fetchall()
+    for row in future:
+        conn.execute("UPDATE articles SET published_at = '' WHERE id = ?", (row[0],))
+        fixed += 1
+    conn.execute(
+        "INSERT INTO flow_meta (k, v) VALUES ('published_iso_v2', ?)",
+        (str(fixed),),
+    )
+    if fixed:
+        print(f"[desk-os] flow normalized {fixed} article dates", flush=True)
+
+
+def _ensure_fts(conn: sqlite3.Connection) -> None:
+    exists = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='articles_fts'"
+    ).fetchone()
+    if not exists:
+        print("[desk-os] flow search index building", flush=True)
+        conn.execute(
+            """
+            CREATE VIRTUAL TABLE articles_fts USING fts5(
+              title, author, summary,
+              content='articles',
+              content_rowid='id',
+              tokenize='unicode61 remove_diacritics 2'
+            )
+            """
+        )
+        conn.execute("INSERT INTO articles_fts(articles_fts) VALUES('rebuild')")
+        print("[desk-os] flow search index ready", flush=True)
+    else:
+        mx = conn.execute("SELECT COALESCE(MAX(rowid), 0) FROM articles_fts").fetchone()[0]
+        conn.execute(
+            """
+            INSERT INTO articles_fts(rowid, title, author, summary)
+            SELECT id, title, author, summary FROM articles WHERE id > ?
+            """,
+            (mx,),
+        )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS articles_fts_ai AFTER INSERT ON articles BEGIN
+          INSERT INTO articles_fts(rowid, title, author, summary)
+          VALUES (new.id, new.title, new.author, new.summary);
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS articles_fts_ad AFTER DELETE ON articles BEGIN
+          INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+          VALUES ('delete', old.id, old.title, old.author, old.summary);
+        END
+        """
+    )
+    conn.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS articles_fts_au
+        AFTER UPDATE OF title, author, summary ON articles BEGIN
+          INSERT INTO articles_fts(articles_fts, rowid, title, author, summary)
+          VALUES ('delete', old.id, old.title, old.author, old.summary);
+          INSERT INTO articles_fts(rowid, title, author, summary)
+          VALUES (new.id, new.title, new.author, new.summary);
+        END
+        """
+    )
+
+
+def _invalidate_lists() -> None:
+    from backend.article_service import invalidate_lists
+
+    invalidate_lists()
 
 
 def detect_lang(text: str) -> str:
@@ -411,6 +554,7 @@ def update_feed(fid: int, **fields: Any) -> dict[str, Any]:
             """,
             (name, url, category, enabled, interval, fid),
         )
+    _invalidate_lists()
     return {"ok": True, "feed": get_feed(fid)}
 
 
@@ -419,6 +563,7 @@ def drop_feed(fid: int) -> dict[str, Any]:
         conn.execute("DELETE FROM articles WHERE feed_id = ?", (fid,))
         cur = conn.execute("DELETE FROM feeds WHERE id = ?", (fid,))
         n = cur.rowcount
+    _invalidate_lists()
     return {"ok": True, "dropped": n}
 
 
@@ -427,6 +572,7 @@ def drop_invalid_feeds() -> dict[str, Any]:
         n = conn.execute("SELECT COUNT(*) FROM feeds WHERE error != ''").fetchone()[0]
         conn.execute("DELETE FROM articles WHERE feed_id IN (SELECT id FROM feeds WHERE error != '')")
         conn.execute("DELETE FROM feeds WHERE error != ''")
+    _invalidate_lists()
     return {"ok": True, "dropped": int(n)}
 
 
@@ -454,6 +600,9 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
         if not guid:
             continue
         title = (item.get("title") or "")[:TITLE_LIMIT]
+        published = _iso_from_text(item.get("published_at") or "")
+        if not (len(published) >= 10 and published[4] == "-" and published[:4].isdigit()):
+            published = ""
         cur = conn.execute(
             """
             INSERT OR IGNORE INTO articles (
@@ -469,7 +618,7 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
                 (item.get("url") or "")[:URL_LIMIT],
                 item.get("author") or "",
                 category,
-                (item.get("published_at") or "")[:40],
+                published[:40],
                 now,
                 item.get("body_html") or "",
                 detect_lang(title),
@@ -498,6 +647,8 @@ def fetch_feed(fid: int) -> dict[str, Any]:
                 """,
                 (name[:TITLE_LIMIT], _now(), fid),
             )
+        if new_n:
+            _invalidate_lists()
         return {"ok": True, "id": fid, "name": name, "new": new_n}
     except Exception as exc:
         err = str(exc)[:180] or "FETCH ERROR"

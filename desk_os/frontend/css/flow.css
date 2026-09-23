@@ -1,4 +1,9 @@
-/* FLOW — 沿用 Desk OS 墨水纸终端 */
+/* FLOW — 墨水纸终端 chrome + 纸面阅读排版 */
+
+#app-flow {
+  --flow-display: "Fraunces", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --flow-text: "Source Serif 4", "Noto Serif SC", Georgia, "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+}
 
 .flow-flash {
   min-height: 1.1em;
@@ -166,7 +171,7 @@
   column-gap: 10px;
   align-items: start;
   width: 100%;
-  padding: 10px 0 11px;
+  padding: 12px 0 13px;
   background: none;
   border: none;
   border-bottom: 1px solid var(--line);
@@ -177,14 +182,20 @@
 
 .flow-row__mark {
   color: var(--fg-time);
-  line-height: 1.35;
+  line-height: 1.5;
+  padding-top: 2px;
 }
 
 .flow-row__name {
-  font-size: clamp(13px, 1.8vmin, 16px);
-  letter-spacing: 0.03em;
+  display: block;
+  font-family: var(--flow-text);
+  font-optical-sizing: auto;
+  font-size: clamp(15px, 2vmin, 17px);
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--fg-time);
-  line-height: 1.3;
+  line-height: 1.45;
+  overflow-wrap: break-word;
 }
 
 .flow-row.is-read .flow-row__name {
@@ -207,20 +218,41 @@
   color: var(--fg-bar-empty);
 }
 
+.flow-read__mast {
+  flex: 0 0 auto;
+  padding: 2px 0 12px;
+  margin: 0 0 10px;
+  border-bottom: 1px solid var(--line);
+}
+
 .flow-read__title {
-  font-size: clamp(16px, 2.8vmin, 22px);
+  font-family: var(--flow-display);
+  font-optical-sizing: auto;
+  font-size: clamp(1.28rem, 3.1vmin, 1.85rem);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.018em;
   color: var(--fg-time);
-  line-height: 1.25;
+  line-height: 1.32;
   margin: 0 0 8px;
+  overflow-wrap: break-word;
+  text-wrap: pretty;
+  hanging-punctuation: first last;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.flow-read__title:lang(zh-Hans) {
+  letter-spacing: 0.02em;
+  line-height: 1.38;
 }
 
 .flow-read__meta {
   font-size: clamp(10px, 1.3vmin, 12px);
   letter-spacing: 0.14em;
   color: var(--fg-dim);
-  margin: 0 0 14px;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .flow-read__label,
@@ -239,12 +271,34 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  font-size: clamp(13px, 1.7vmin, 15px);
-  line-height: 1.55;
+  font-family: var(--flow-text);
+  font-optical-sizing: auto;
+  font-size: clamp(17px, 2.3vmin, 19px);
+  font-weight: 400;
+  line-height: 1.78;
+  letter-spacing: 0.005em;
   color: var(--fg);
   white-space: pre-wrap;
+  overflow-wrap: break-word;
   user-select: text;
-  padding-bottom: 12px;
+  padding: 2px 1px 36px 0;
+  hanging-punctuation: first last;
+  font-feature-settings: "kern" 1, "liga" 1, "onum" 0;
+  text-autospace: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.flow-read__body:lang(en) {
+  line-height: 1.7;
+  hyphens: auto;
+  hyphenate-limit-chars: 6 3 3;
+}
+
+.flow-read__body:lang(zh-Hans) {
+  line-height: 1.9;
+  letter-spacing: 0.03em;
 }
 
 .flow-read__body.is-html {
@@ -252,36 +306,140 @@
 }
 
 .flow-read__body.is-html p,
+.flow-read__body.is-html h1,
 .flow-read__body.is-html h2,
 .flow-read__body.is-html h3,
+.flow-read__body.is-html h4,
 .flow-read__body.is-html ul,
 .flow-read__body.is-html ol,
 .flow-read__body.is-html blockquote,
-.flow-read__body.is-html figure {
-  margin: 0 0 12px;
+.flow-read__body.is-html figure,
+.flow-read__body.is-html pre {
+  margin: 0 0 1.05em;
 }
 
+.flow-read__body.is-html p {
+  text-wrap: pretty;
+}
+
+.flow-read__body.is-html:lang(zh-Hans) p {
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+.flow-read__body.is-html h1,
 .flow-read__body.is-html h2,
-.flow-read__body.is-html h3 {
+.flow-read__body.is-html h3,
+.flow-read__body.is-html h4 {
+  font-family: var(--flow-display);
+  font-optical-sizing: auto;
   color: var(--fg-time);
-  font-size: clamp(14px, 1.9vmin, 17px);
-  letter-spacing: 0.04em;
   font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  margin: 1.35em 0 0.55em;
+  text-wrap: pretty;
+}
+
+.flow-read__body.is-html h1,
+.flow-read__body.is-html h2 {
+  font-size: 1.18em;
+}
+
+.flow-read__body.is-html h3,
+.flow-read__body.is-html h4 {
+  font-size: 1.06em;
+}
+
+.flow-read__body.is-html ul,
+.flow-read__body.is-html ol {
+  padding: 0 0 0 1.35em;
+}
+
+.flow-read__body.is-html li {
+  margin: 0 0 0.4em;
+  padding-left: 0.15em;
+}
+
+.flow-read__body.is-html li::marker {
+  color: var(--fg-dim);
+}
+
+.flow-read__body.is-html blockquote {
+  margin: 0.2em 0 1.15em;
+  padding: 0.15em 0 0.15em 0.9em;
+  border-left: 2px solid var(--fg-time);
+  color: var(--fg-mid);
+  font-style: italic;
+}
+
+.flow-read__body.is-html:lang(zh-Hans) blockquote {
+  font-style: normal;
+}
+
+.flow-read__body.is-html em,
+.flow-read__body.is-html i {
+  font-style: italic;
+}
+
+.flow-read__body.is-html strong,
+.flow-read__body.is-html b {
+  font-weight: 600;
+  color: var(--fg-time);
+}
+
+.flow-read__body.is-html code,
+.flow-read__body.is-html pre {
+  font-family: var(--font);
+  font-size: 0.86em;
+  letter-spacing: 0;
+  line-height: 1.55;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+
+.flow-read__body.is-html code {
+  color: var(--fg-time);
+}
+
+.flow-read__body.is-html pre {
+  overflow: auto;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  white-space: pre-wrap;
 }
 
 .flow-read__body.is-html img {
   display: block;
   max-width: 100%;
   height: auto;
-  margin: 8px 0 14px;
+  margin: 0.4em 0 1.1em;
   border: 1px solid var(--line);
-  filter: grayscale(1) contrast(1.05);
+  filter: grayscale(1) contrast(1.04);
+}
+
+.flow-read__body.is-html figure img {
+  margin-bottom: 0.45em;
+}
+
+.flow-read__body.is-html figcaption {
+  font-size: 0.82em;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  color: var(--fg-dim);
+  margin: 0;
 }
 
 .flow-read__body.is-html a {
   color: var(--fg-time);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.flow-read__body.is-html a:hover {
+  color: var(--fg);
 }
 
 .flow-group {
@@ -300,6 +458,8 @@
 .flow-feed {
   padding: 12px 0 10px;
   border-bottom: 1px solid var(--line);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 }
 
 .flow-feed__top {
@@ -310,9 +470,15 @@
 }
 
 .flow-feed__name {
-  font-size: clamp(13px, 1.8vmin, 16px);
-  letter-spacing: 0.04em;
+  font-family: var(--flow-text);
+  font-optical-sizing: auto;
+  font-size: clamp(15px, 2vmin, 17px);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.4;
   color: var(--fg-time);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .flow-feed.is-off .flow-feed__name,

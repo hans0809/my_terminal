@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import sqlite3
+import threading
 import webbrowser
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -12,9 +14,35 @@ from backend.feed_service import CATEGORIES, _connect, _row
 ARTICLE_LIMIT = 80
 PAGE_SIZE = 40
 
+_meta_lock = threading.Lock()
+_meta_gen = 0
+_meta_counts: dict[str, Any] | None = None
+_meta_sources: list[dict[str, Any]] | None = None
+
 
 def _when_expr() -> str:
     return "CASE WHEN a.published_at = '' THEN a.fetched_at ELSE a.published_at END"
+
+
+def invalidate_lists() -> None:
+    global _meta_gen, _meta_counts, _meta_sources
+    with _meta_lock:
+        _meta_gen += 1
+        _meta_counts = None
+        _meta_sources = None
+
+
+def _fts_query(text: str) -> str:
+    parts: list[str] = []
+    for raw in (text or "").replace('"', " ").split():
+        token = "".join(ch for ch in raw if ch.isalnum() or ch in "-_+")
+        if not token:
+            continue
+        if token.isascii():
+            parts.append(f'"{token}"*')
+        else:
+            parts.append('"' + token + '"')
+    return " AND ".join(parts)
 
 
 def _range_start(date_range: str) -> str:
@@ -64,7 +92,7 @@ def list_articles(
     args: list[Any] = []
     cat = (category or "").strip().upper()
     if cat in CATEGORIES:
-        where.append("UPPER(CASE WHEN a.category != '' THEN a.category ELSE f.category END) = ?")
+        where.append("a.category = ?")
         args.append(cat)
     if unread is True:
         where.append("a.is_read = 0")
@@ -75,10 +103,10 @@ def list_articles(
     if read_later is True:
         where.append("a.is_read_later = 1")
     q = (search or "").strip()
-    if q:
-        like = f"%{q}%"
-        where.append("(a.title LIKE ? OR a.summary LIKE ? OR a.author LIKE ?)")
-        args.extend([like, like, like])
+    match = _fts_query(q) if q else ""
+    if match:
+        where.append("a.id IN (SELECT rowid FROM articles_fts WHERE articles_fts MATCH ?)")
+        args.append(match)
     start = _range_start(date_range)
     if start:
         where.append(f"{_when_expr()} >= ?")
@@ -95,37 +123,33 @@ def list_articles(
         where.append("a.feed_id = ?")
         args.append(fid)
 
-    clause = " AND ".join(where)
-    join_sql = f"""
-        FROM articles a
-        JOIN feeds f ON f.id = a.feed_id
-        WHERE {clause}
-    """
+    clause = " AND ".join(where) if where else "1=1"
+    order_sql = f"ORDER BY {_when_expr()} DESC, a.id DESC"
     with _connect() as conn:
-        total = int(conn.execute(f"SELECT COUNT(*) {join_sql}", args).fetchone()[0])
+        try:
+            total = int(
+                conn.execute(f"SELECT COUNT(*) FROM articles a WHERE {clause}", args).fetchone()[0]
+            )
+        except sqlite3.OperationalError as exc:
+            print(f"[desk-os] flow query fail {exc}", flush=True)
+            return _empty_page(limit)
         if total and offset >= total:
             offset = ((total - 1) // limit) * limit
         rows = conn.execute(
             f"""
             SELECT a.id, a.feed_id, a.title, a.summary, a.url, a.author,
-                   a.category AS category, f.category AS feed_category,
+                   a.category AS category, f.category AS feed_category, a.lang,
                    a.published_at, a.fetched_at, a.is_read, a.is_saved, a.is_read_later,
                    f.name AS source
-            {join_sql}
-            ORDER BY {_when_expr()} DESC, a.id DESC
+            FROM articles a
+            JOIN feeds f ON f.id = a.feed_id
+            WHERE {clause}
+            {order_sql}
             LIMIT ? OFFSET ?
             """,
             [*args, limit, offset],
         ).fetchall()
-        sources = conn.execute(
-            """
-            SELECT f.id, f.name, COUNT(a.id) AS n
-            FROM feeds f
-            JOIN articles a ON a.feed_id = f.id
-            GROUP BY f.id
-            ORDER BY n DESC, f.name ASC
-            """
-        ).fetchall()
+        sources = _sources(conn)
     articles = []
     for row in rows:
         item = _row(row)
@@ -146,9 +170,51 @@ def list_articles(
         "pages": pages,
         "limit": limit,
         "offset": offset,
-        "sources": [{"id": int(r["id"]), "name": r["name"] or "", "n": int(r["n"])} for r in sources],
+        "sources": sources,
         "counts": counts(),
     }
+
+
+def _empty_page(limit: int) -> dict[str, Any]:
+    return {
+        "articles": [],
+        "n": 0,
+        "total": 0,
+        "page": 1,
+        "pages": 1,
+        "limit": limit,
+        "offset": 0,
+        "sources": _sources_cached() or [],
+        "counts": counts(),
+    }
+
+
+def _sources_cached() -> list[dict[str, Any]] | None:
+    with _meta_lock:
+        return _meta_sources
+
+
+def _sources(conn: Any) -> list[dict[str, Any]]:
+    global _meta_sources
+    with _meta_lock:
+        gen = _meta_gen
+        cached = _meta_sources
+    if cached is not None:
+        return cached
+    rows = conn.execute(
+        """
+        SELECT f.id, f.name, COUNT(a.id) AS n
+        FROM feeds f
+        JOIN articles a ON a.feed_id = f.id
+        GROUP BY f.id
+        ORDER BY n DESC, f.name ASC
+        """
+    ).fetchall()
+    data = [{"id": int(r["id"]), "name": r["name"] or "", "n": int(r["n"])} for r in rows]
+    with _meta_lock:
+        if _meta_gen == gen:
+            _meta_sources = data
+    return data
 
 
 def get_article(aid: int, proxy: bool = True) -> dict[str, Any] | None:
@@ -197,6 +263,7 @@ def ensure_body(aid: int) -> dict[str, Any] | None:
 def mark_read(aid: int, value: bool = True) -> dict[str, Any] | None:
     with _connect() as conn:
         conn.execute("UPDATE articles SET is_read = ? WHERE id = ?", (1 if value else 0, aid))
+    invalidate_lists()
     return get_article(aid)
 
 
@@ -207,6 +274,7 @@ def toggle_saved(aid: int) -> dict[str, Any] | None:
     nxt = 0 if item["is_saved"] else 1
     with _connect() as conn:
         conn.execute("UPDATE articles SET is_saved = ? WHERE id = ?", (nxt, aid))
+    invalidate_lists()
     return get_article(aid)
 
 
@@ -217,6 +285,7 @@ def toggle_read_later(aid: int) -> dict[str, Any] | None:
     nxt = 0 if item["is_read_later"] else 1
     with _connect() as conn:
         conn.execute("UPDATE articles SET is_read_later = ? WHERE id = ?", (nxt, aid))
+    invalidate_lists()
     return get_article(aid)
 
 
@@ -229,6 +298,20 @@ def open_article(aid: int) -> dict[str, Any]:
 
 
 def counts() -> dict[str, Any]:
+    global _meta_counts
+    with _meta_lock:
+        gen = _meta_gen
+        cached = _meta_counts
+    if cached is not None:
+        return cached
+    data = _compute_counts()
+    with _meta_lock:
+        if _meta_gen == gen:
+            _meta_counts = data
+    return data
+
+
+def _compute_counts() -> dict[str, Any]:
     cats = {c: 0 for c in CATEGORIES}
     with _connect() as conn:
         total = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
@@ -236,22 +319,16 @@ def counts() -> dict[str, Any]:
         saved = conn.execute("SELECT COUNT(*) FROM articles WHERE is_saved = 1").fetchone()[0]
         later = conn.execute("SELECT COUNT(*) FROM articles WHERE is_read_later = 1").fetchone()[0]
         rows = conn.execute(
-            """
-            SELECT UPPER(CASE WHEN a.category != '' THEN a.category ELSE f.category END) AS cat,
-                   COUNT(*) AS n
-            FROM articles a
-            JOIN feeds f ON f.id = a.feed_id
-            GROUP BY cat
-            """
+            "SELECT category AS cat, COUNT(*) AS n FROM articles GROUP BY category"
         ).fetchall()
         last = conn.execute(
             "SELECT MAX(last_fetch_at) FROM feeds WHERE last_fetch_at != ''"
         ).fetchone()[0] or ""
         feeds_n = conn.execute("SELECT COUNT(*) FROM feeds").fetchone()[0]
     for row in rows:
-        cat = row["cat"]
+        cat = (row["cat"] or "").strip().upper()
         if cat in cats:
-            cats[cat] = int(row["n"])
+            cats[cat] += int(row["n"])
         else:
             cats["OTHER"] += int(row["n"])
     return {
