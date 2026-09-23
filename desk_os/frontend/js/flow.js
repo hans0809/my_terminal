@@ -19,10 +19,13 @@
   const feedRows = document.getElementById('flow-feed-rows');
   const searchForm = document.getElementById('flow-search');
   const searchInput = document.getElementById('flow-search-input');
+  const appFlow = document.getElementById('app-flow');
   const readTitle = document.getElementById('flow-read-title');
   const readMeta = document.getElementById('flow-read-meta');
   const readBody = document.getElementById('flow-read-body');
   const readLabel = document.getElementById('flow-read-label');
+  const readScroll = document.getElementById('flow-read-scroll');
+  const readProgress = document.getElementById('flow-read-progress');
   const saveBtn = document.getElementById('flow-save');
   const laterBtn = document.getElementById('flow-later');
   const openBtn = document.getElementById('flow-open');
@@ -110,6 +113,21 @@
     if (feedsPanel) feedsPanel.classList.toggle('is-on', name === 'feeds');
     if (formPanel) formPanel.classList.toggle('is-on', name === 'form');
     if (heading) heading.textContent = name === 'list' ? 'FLOW' : '← FLOW';
+    if (appFlow) appFlow.classList.toggle('is-reading', name === 'read');
+    if (name === 'read') requestAnimationFrame(updateProgress);
+  }
+
+  function updateProgress() {
+    if (!readScroll || !readProgress) return;
+    const track = readProgress.parentElement;
+    const max = readScroll.scrollHeight - readScroll.clientHeight;
+    if (max <= 8) {
+      if (track) track.hidden = true;
+      return;
+    }
+    if (track) track.hidden = false;
+    const ratio = Math.min(1, Math.max(0, readScroll.scrollTop / max));
+    readProgress.style.width = `${ratio * 100}%`;
   }
 
   function markOf(item) {
@@ -225,6 +243,21 @@
     else el.removeAttribute('lang');
   }
 
+  function tidyRead(root) {
+    const media = 'img, video, iframe, svg, table, pre, ul, ol, blockquote';
+    root.querySelectorAll('p, div, span, b, strong, font, section, center').forEach((el) => {
+      if (!el.isConnected || el.querySelector(media)) return;
+      const text = el.textContent.replace(/\u00a0/g, '').replace(/\s+/g, '');
+      if (!text) el.remove();
+    });
+    root.querySelectorAll('br').forEach((br) => {
+      const prev = br.previousSibling;
+      const prevBr = prev && prev.nodeType === 1 && prev.tagName === 'BR';
+      const atEdge = !prev || (prev.nodeType === 3 && !prev.textContent.replace(/\u00a0/g, '').trim());
+      if (prevBr || atEdge) br.remove();
+    });
+  }
+
   function renderRead(item) {
     if (!item) return;
     openItem = item;
@@ -234,12 +267,13 @@
     applyReadLang(readBody, htmlLang);
     if (readTitle) readTitle.textContent = item.title || 'untitled';
     const bits = [item.source, item.category, item.author, fmtDate(item.published_at || item.fetched_at)];
-    if (readMeta) readMeta.textContent = bits.filter(Boolean).join(' · ').toUpperCase();
+    if (readMeta) readMeta.textContent = bits.filter(Boolean).join(' · ');
     if (readBody) {
       const html = (item.body_html || '').trim();
       if (html) {
         readBody.classList.add('is-html');
         readBody.innerHTML = html;
+        tidyRead(readBody);
         if (readLabel) readLabel.textContent = '';
       } else if (item.loading) {
         readBody.classList.remove('is-html');
@@ -250,8 +284,9 @@
         readBody.textContent = (item.summary || item.excerpt || '').trim() || 'NO ABSTRACT';
         if (readLabel) readLabel.textContent = 'ABSTRACT';
       }
-      readBody.scrollTop = 0;
     }
+    if (readScroll) readScroll.scrollTop = 0;
+    requestAnimationFrame(updateProgress);
     if (saveBtn) saveBtn.textContent = item.is_saved ? '★ SAVED' : 'SAVE';
     if (laterBtn) laterBtn.textContent = item.is_read_later ? 'LATER ✓' : 'READ LATER';
   }
@@ -669,6 +704,10 @@
       const data = await res.json();
       if (data.article) renderRead(data.article);
     });
+  }
+
+  if (readScroll) {
+    readScroll.addEventListener('scroll', updateProgress, { passive: true });
   }
 
   if (openBtn) {

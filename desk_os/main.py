@@ -29,6 +29,7 @@ if str(ROOT) not in sys.path:
 from backend.api import app  # noqa: E402
 from backend.display_utils import (  # noqa: E402
     TARGET_MONITOR,
+    fit_window_to_monitor,
     get_window_monitor_index,
     move_window_to_monitor,
 )
@@ -143,7 +144,7 @@ def main():
         if placed_on_target:
             return
 
-        if move_window_to_monitor(window, TARGET_MONITOR, WINDOW_WIDTH, WINDOW_HEIGHT):
+        if fit_window_to_monitor(window, TARGET_MONITOR):
             # 确认窗口确实到了目标屏
             if get_window_monitor_index(window) == TARGET_MONITOR:
                 placed_on_target = True
@@ -237,8 +238,7 @@ def main():
             _set_display_mode("fullscreen")
         else:
             window.restore()
-            window.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
-            move_window_to_monitor(window, active_monitor, WINDOW_WIDTH, WINDOW_HEIGHT)
+            fit_window_to_monitor(window, active_monitor)
             _set_display_mode("windowed")
 
     window.expose(toggle_fullscreen)

@@ -48,6 +48,10 @@ def get_monitors() -> list[dict]:
                 "bottom": rect.bottom,
                 "width": rect.right - rect.left,
                 "height": rect.bottom - rect.top,
+                "work_left": info.rcWork.left,
+                "work_top": info.rcWork.top,
+                "work_width": info.rcWork.right - info.rcWork.left,
+                "work_height": info.rcWork.bottom - info.rcWork.top,
                 "is_primary": bool(info.dwFlags & MONITORINFOF_PRIMARY),
             }
         )
@@ -132,6 +136,24 @@ def get_window_monitor_index(win) -> int:
     cx = win.x + win.width // 2
     cy = win.y + win.height // 2
     return get_monitor_index_at(cx, cy)
+
+
+def fit_window_to_monitor(win, monitor_index: int) -> bool:
+    """把窗口铺满指定显示器的工作区（避开任务栏）。"""
+    monitors = get_monitors()
+    if not monitors:
+        return False
+    mon = monitors[_clamp_monitor_index(monitor_index)]
+    width = int(mon.get("work_width") or mon["width"])
+    height = int(mon.get("work_height") or mon["height"])
+    x = int(mon.get("work_left", mon["left"]))
+    y = int(mon.get("work_top", mon["top"]))
+    try:
+        win.resize(width, height)
+        win.move(x, y)
+        return True
+    except Exception:
+        return False
 
 
 def move_window_to_monitor(win, monitor_index: int, width: int, height: int) -> bool:

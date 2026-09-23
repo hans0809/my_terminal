@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=31">
-  <link rel="stylesheet" href="/css/flow.css?v=8">
+  <link rel="stylesheet" href="/css/style.css?v=41">
+  <link rel="stylesheet" href="/css/flow.css?v=14">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -28,6 +28,7 @@
                   <span id="system-status">SYSTEM ONLINE</span>
                 </div>
 
+                <div class="terminal__dock">
                 <section class="terminal__metrics">
                   <div class="term-row">
                     <span class="term-row__label">CPU</span>
@@ -93,6 +94,7 @@
                     <span id="rst-val" class="info-row__val">--</span>
                   </div>
                 </section>
+                </div>
               </main>
             </div>
           </div>
@@ -164,22 +166,24 @@
                   <span class="task-prompt">&gt;</span>
                   <input id="flow-search-input" class="flow-search__input" maxlength="80" spellcheck="false">
                 </form>
-                <div id="flow-tabs" class="flow-tabs">
-                  <button class="flow-tab is-on" type="button" data-tab="all">ALL</button>
-                  <button class="flow-tab" type="button" data-tab="unread">UNREAD</button>
-                  <button class="flow-tab" type="button" data-tab="saved">SAVED</button>
-                  <button class="flow-tab" type="button" data-tab="later">LATER</button>
-                </div>
-                <div id="flow-range" class="flow-tabs">
-                  <button class="flow-tab is-on" type="button" data-range="all">ALL</button>
-                  <button class="flow-tab" type="button" data-range="today">TODAY</button>
-                  <button class="flow-tab" type="button" data-range="week">WEEK</button>
-                  <button class="flow-tab" type="button" data-range="month">MONTH</button>
-                </div>
-                <div id="flow-lang" class="flow-tabs">
-                  <button class="flow-tab is-on" type="button" data-lang="">ANY</button>
-                  <button class="flow-tab" type="button" data-lang="ZH">ZH</button>
-                  <button class="flow-tab" type="button" data-lang="EN">EN</button>
+                <div class="flow-toolbar">
+                  <div id="flow-tabs" class="flow-tabs">
+                    <button class="flow-tab is-on" type="button" data-tab="all">ALL</button>
+                    <button class="flow-tab" type="button" data-tab="unread">UNREAD</button>
+                    <button class="flow-tab" type="button" data-tab="saved">SAVED</button>
+                    <button class="flow-tab" type="button" data-tab="later">LATER</button>
+                  </div>
+                  <div id="flow-range" class="flow-tabs">
+                    <button class="flow-tab is-on" type="button" data-range="all">ALL</button>
+                    <button class="flow-tab" type="button" data-range="today">TODAY</button>
+                    <button class="flow-tab" type="button" data-range="week">WEEK</button>
+                    <button class="flow-tab" type="button" data-range="month">MONTH</button>
+                  </div>
+                  <div id="flow-lang" class="flow-tabs">
+                    <button class="flow-tab is-on" type="button" data-lang="">ANY</button>
+                    <button class="flow-tab" type="button" data-lang="ZH">ZH</button>
+                    <button class="flow-tab" type="button" data-lang="EN">EN</button>
+                  </div>
                 </div>
                 <label class="flow-source" for="flow-source">
                   <span class="task-prompt">@</span>
@@ -201,12 +205,15 @@
               </div>
 
               <div id="flow-read" class="flow-panel">
-                <header class="flow-read__mast">
-                  <h1 id="flow-read-title" class="flow-read__title"></h1>
-                  <p id="flow-read-meta" class="flow-read__meta"></p>
-                </header>
-                <p id="flow-read-label" class="flow-read__label">ABSTRACT</p>
-                <div id="flow-read-body" class="flow-read__body"></div>
+                <div class="flow-read__progress" hidden aria-hidden="true"><span id="flow-read-progress"></span></div>
+                <div id="flow-read-scroll" class="flow-read__scroll">
+                  <header class="flow-read__mast">
+                    <h1 id="flow-read-title" class="flow-read__title"></h1>
+                    <p id="flow-read-meta" class="flow-read__meta"></p>
+                  </header>
+                  <p id="flow-read-label" class="flow-read__label">ABSTRACT</p>
+                  <div id="flow-read-body" class="flow-read__body"></div>
+                </div>
                 <div class="task-foot">
                   <button id="flow-save" class="task-drop" type="button">SAVE</button>
                   <button id="flow-later" class="task-drop" type="button">LATER</button>
@@ -261,8 +268,8 @@
 
   <script src="/js/app.js?v=8"></script>
   <script src="/js/desk.js?v=16"></script>
-  <script src="/js/flow.js?v=9"></script>
-  <script src="/js/dashboard.js?v=6"></script>
+  <script src="/js/flow.js?v=11"></script>
+  <script src="/js/dashboard.js?v=9"></script>
   <script src="/js/pixel-dog.js?v=23"></script>
 </body>
 </html>

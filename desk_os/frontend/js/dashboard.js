@@ -44,22 +44,31 @@
   let quotaSeen = false;
   let quotaFlashed = false;
 
+  function measureBarChar(barEl) {
+    const canvas = measureBarChar.canvas || (measureBarChar.canvas = document.createElement('canvas'));
+    const ctx = canvas.getContext('2d');
+    if (!ctx || !barEl) return 8;
+    const cs = getComputedStyle(barEl);
+    ctx.font = cs.font;
+    const w = ctx.measureText('█').width;
+    return w > 1 ? w : 8;
+  }
+
   function calcBarLen() {
-    const metrics = document.querySelector('.terminal__metrics');
-    if (!metrics) return 16;
-    const row = metrics.querySelector('.term-row');
-    if (!row) return 16;
-    const barEl = row.querySelector('.term-row__bar');
+    const barEl = document.querySelector('.terminal__metrics .term-row:not(.is-hidden) .term-row__bar');
     if (!barEl) return 16;
-    const style = getComputedStyle(row);
-    const gap = parseFloat(style.columnGap) || 8;
-    const cols = row.getBoundingClientRect().width;
-    const labelW = row.querySelector('.term-row__label')?.getBoundingClientRect().width || 48;
-    const valEl = row.querySelector('.term-row__val');
-    const valW = valEl ? parseFloat(getComputedStyle(valEl).width) : 88;
-    const barW = cols - labelW - valW - gap * 2;
-    const charW = 7;
-    return Math.max(12, Math.min(80, Math.floor(barW / charW)));
+    const portrait = window.matchMedia(
+      '(orientation: portrait) and (min-width: 1000px) and (min-height: 1400px)'
+    ).matches;
+    if (portrait) {
+      const wide = barEl.getBoundingClientRect().width;
+      const ch = measureBarChar(barEl);
+      if (wide >= 24) return Math.max(16, Math.min(42, Math.floor(wide / ch)));
+    }
+    const barW = barEl.getBoundingClientRect().width;
+    const charW = measureBarChar(barEl);
+    if (barW < 24) return 12;
+    return Math.max(8, Math.min(48, Math.floor(barW / charW)));
   }
 
   function pixelBar(ratio) {
