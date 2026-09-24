@@ -1,20 +1,31 @@
 /**
  * Desk OS — 系统日志
- * 主页四行由状态轮询刷；LOG 页拉全表。
+ * 主页左侧滚动，右侧四个高频应用；LOG 页拉全表。
  */
 
 (function () {
   const rowsEl = document.getElementById('log-rows');
-  const homeEl = document.getElementById('sys-log');
+  const streamEl = document.getElementById('sys-log-stream');
+  const topEl = document.getElementById('sys-log-top');
   let timer = 0;
   let follow = true;
+  let homeFollow = true;
   let painting = false;
+  let paintingHome = false;
 
   if (rowsEl) {
     rowsEl.addEventListener('scroll', () => {
       if (painting) return;
       const gap = rowsEl.scrollHeight - rowsEl.scrollTop - rowsEl.clientHeight;
       follow = gap < 72;
+    });
+  }
+
+  if (streamEl) {
+    streamEl.addEventListener('scroll', () => {
+      if (paintingHome) return;
+      const gap = streamEl.scrollHeight - streamEl.scrollTop - streamEl.clientHeight;
+      homeFollow = gap < 24;
     });
   }
 
@@ -44,15 +55,41 @@
     const home = cls === 'log-line';
     const time = escapeHtml(home ? clock.slice(0, 5) : clock);
     const words = escapeHtml(phrase(row, home));
-    const body = home
-      ? `<span class="${cls}__text">${words}</span><span class="${cls}__time">${time}</span>`
-      : `<span class="${cls}__time">${time}</span><span class="${cls}__text">${words}</span>`;
-    return `<p class="${cls} is-${level}">${body}</p>`;
+    return `<p class="${cls} is-${level}"><span class="${cls}__time">${time}</span><span class="${cls}__text">${words}</span></p>`;
   }
 
-  function paintHome(list) {
-    if (!homeEl || !Array.isArray(list)) return;
-    homeEl.innerHTML = list.slice(-4).map((row) => lineHtml(row, 'log-line')).join('');
+  function rankFrom(list) {
+    const counts = new Map();
+    list.forEach((row) => {
+      let text = String(row.text || '');
+      if (!text.endsWith(' ACTIVE')) return;
+      text = text.replace(/ ACTIVE$/, '');
+      if (text.includes('…') || text.includes('/')) {
+        text = text.split(/[\s/]/)[0].replace(/…$/, '');
+      }
+      if (!text) return;
+      counts.set(text, (counts.get(text) || 0) + 1);
+    });
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      .slice(0, 4)
+      .map(([name, n]) => ({ name, n }));
+  }
+
+  function paintHome(list, apps) {
+    if (!streamEl || !Array.isArray(list)) return;
+    paintingHome = true;
+    streamEl.innerHTML = list.map((row) => lineHtml(row, 'log-line')).join('');
+    if (homeFollow) streamEl.scrollTop = streamEl.scrollHeight;
+    paintingHome = false;
+    if (!topEl || !Array.isArray(apps)) return;
+    const ranked = apps.slice(0, 4).filter((app) => app && app.name);
+    topEl.innerHTML = ranked.map((app) => {
+      const name = escapeHtml(app.name);
+      const count = escapeHtml(app.n);
+      return `<li class="log-top__row"><span class="log-top__name">${name}</span><span class="log-top__n">${count}</span></li>`;
+    }).join('');
+    topEl.hidden = ranked.length === 0;
   }
 
   function paintApp(list) {
@@ -69,8 +106,9 @@
       if (!res.ok) return;
       const data = await res.json();
       const lines = Array.isArray(data.lines) ? data.lines : [];
+      const apps = Array.isArray(data.apps) && data.apps.length ? data.apps : rankFrom(lines);
       paintApp(lines);
-      paintHome(lines);
+      paintHome(lines, apps);
     } catch {
       /* 主页仍靠 /api/system */
     }
@@ -86,17 +124,15 @@
     }).catch(() => {});
   }
 
+  load();
+  timer = setInterval(load, 2000);
+
   window.DeskLog = {
     note,
     paintHome,
     onEnter() {
       load();
-      clearInterval(timer);
-      timer = setInterval(load, 2000);
     },
-    onLeave() {
-      clearInterval(timer);
-      timer = 0;
-    },
+    onLeave() {},
   };
 })();

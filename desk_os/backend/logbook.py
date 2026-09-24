@@ -12,8 +12,11 @@ from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 LOG_FILE = DATA_DIR / "log.json"
+APPS_FILE = DATA_DIR / "apps.json"
 MAX_LINES = 180
 TAIL = 4
+HOME_LINES = 32
+TOP_APPS = 4
 DEDUPE_SEC = 4
 FLOW_FAIL_COOLDOWN = 30 * 60
 QUOTA_ON = 80
@@ -27,6 +30,7 @@ LEVELS = {"info", "warn", "event"}
 
 _lock = threading.Lock()
 _lines: list[dict] = []
+_apps: dict[str, int] = {}
 _edges: dict = {}
 _flow_fail_at = 0.0
 _booted = False
@@ -68,6 +72,78 @@ def _save() -> None:
     tmp = LOG_FILE.with_suffix(".tmp")
     tmp.write_text(payload, encoding="utf-8")
     os.replace(tmp, LOG_FILE)
+
+
+def _app_label(name: str) -> str:
+    name = re.sub(r"\s+", " ", (name or "").strip())
+    name = re.sub(r"\s+ACTIVE$", "", name)
+    if "…" in name or "/" in name:
+        name = re.split(r"[\s/]", name)[0].replace("…", "")
+    name = name.strip()
+    if name and all(ord(c) < 128 for c in name):
+        name = name.upper()
+    return name[:12]
+
+
+def _load_apps() -> None:
+    global _apps
+    try:
+        raw = json.loads(APPS_FILE.read_text(encoding="utf-8"))
+        loaded = True
+    except (OSError, ValueError, TypeError):
+        raw = None
+        loaded = False
+    apps: dict[str, int] = {}
+    if isinstance(raw, dict):
+        for key, val in raw.items():
+            label = _app_label(str(key))
+            try:
+                count = int(val)
+            except (TypeError, ValueError):
+                continue
+            if label and count > 0:
+                apps[label] = apps.get(label, 0) + count
+    if not loaded:
+        for row in _lines:
+            if not str(row.get("text") or "").endswith(" ACTIVE"):
+                continue
+            label = _app_label(str(row.get("text") or ""))
+            if label:
+                apps[label] = apps.get(label, 0) + 1
+        _apps = apps
+        try:
+            _save_apps()
+        except OSError as exc:
+            print(f"[desk-os] app tally save failed: {exc}", flush=True)
+        return
+    _apps = apps
+
+
+def _save_apps() -> None:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(_apps, ensure_ascii=False, indent=2)
+    tmp = APPS_FILE.with_suffix(".tmp")
+    tmp.write_text(payload, encoding="utf-8")
+    os.replace(tmp, APPS_FILE)
+
+
+def _touch_app(name: str) -> None:
+    label = _app_label(name)
+    if not label:
+        return
+    with _lock:
+        _apps[label] = int(_apps.get(label) or 0) + 1
+        try:
+            _save_apps()
+        except OSError as exc:
+            print(f"[desk-os] app tally save failed: {exc}", flush=True)
+
+
+def top_apps(n: int = TOP_APPS) -> list[dict]:
+    n = max(1, min(int(n or TOP_APPS), 8))
+    with _lock:
+        ranked = sorted(_apps.items(), key=lambda item: (-item[1], item[0]))[:n]
+    return [{"name": name, "n": count} for name, count in ranked]
 
 
 def _clean(text: str) -> str:
@@ -208,8 +284,10 @@ def observe(status: dict) -> None:
             key = f"app:{name}"
             text = f"{name} ACTIVE"
         if key != _edges.get("focus"):
-            record("event", text)
+            wrote = record("event", text)
             _edges["focus"] = key
+            if wrote and kind != "media":
+                _touch_app(name)
     else:
         _edges["focus"] = ""
 
@@ -248,3 +326,4 @@ def observe(status: dict) -> None:
 
 
 _load()
+_load_apps()

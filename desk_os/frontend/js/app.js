@@ -55,8 +55,11 @@
     root.querySelectorAll('.terminal__head > *').forEach((el) => nodes.push(el));
     const status = root.querySelector('.terminal__status-line');
     if (status) nodes.push(status);
+    root.querySelectorAll('.sky-col').forEach((el) => nodes.push(el));
+    const skyRule = root.querySelector('.terminal__rule--sky');
+    if (skyRule) nodes.push(skyRule);
     root.querySelectorAll('.term-row').forEach((el) => nodes.push(el));
-    const rule = root.querySelector('.terminal__rule:not(.terminal__rule--log)');
+    const rule = root.querySelector('.terminal__dock .terminal__rule');
     if (rule) nodes.push(rule);
     root.querySelectorAll('.info-row').forEach((el) => nodes.push(el));
     const logRule = root.querySelector('.terminal__rule--log');

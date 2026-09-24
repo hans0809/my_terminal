@@ -81,7 +81,8 @@ def api_system():
         logbook.observe(status)
     except Exception:
         pass
-    status["log"] = logbook.tail()
+    status["log"] = logbook.tail(logbook.HOME_LINES)
+    status["apps"] = logbook.top_apps()
     status["datetime"] = {
         "time": now.strftime("%H:%M"),
         "date": now.strftime("%a %d %b").upper(),
@@ -308,7 +309,7 @@ class LogIn(BaseModel):
 
 @app.get("/api/log")
 def api_log_get(n: int = 180):
-    return {"lines": logbook.recent(n)}
+    return {"lines": logbook.recent(n), "apps": logbook.top_apps()}
 
 
 @app.post("/api/log")

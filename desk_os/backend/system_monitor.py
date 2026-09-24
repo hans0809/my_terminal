@@ -7,6 +7,8 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote
 
 import psutil
 
@@ -17,12 +19,20 @@ _net_prev_time = None
 # ping / 天气缓存（避免高频请求）
 _ping_cache: dict = {"data": None, "time": 0}
 _weather_cache: dict = {"data": None, "time": 0}
+_place_cache: dict = {"name": "", "time": 0}
 
 PING_HOST = os.environ.get("DESK_OS_PING_HOST", "1.1.1.1")
 PING_INTERVAL = 10
 WEATHER_LAT = os.environ.get("DESK_OS_WEATHER_LAT", "39.9")
 WEATHER_LON = os.environ.get("DESK_OS_WEATHER_LON", "116.4")
 WEATHER_INTERVAL = 900
+PLACE_INTERVAL = 86400
+
+# 北京时间右侧的另外两地。时区用 IANA 名，夏令时由接口给出。
+_WORLD_CITIES = (
+    ("lon", "LONDON", "51.5072", "-0.1276", "Europe/London"),
+    ("nyc", "NEW YORK", "40.7128", "-74.0060", "America/New_York"),
+)
 
 # WMO 天气代码 → 简短英文描述
 WMO_WEATHER = {
@@ -202,6 +212,98 @@ def get_ping() -> dict:
     return result_data
 
 
+def _fetch_json(url: str) -> dict:
+    req = urllib.request.Request(url, headers={"User-Agent": "DeskOS/1.0"})
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _hhmm(value) -> str:
+    if not isinstance(value, str) or "T" not in value:
+        return ""
+    return value.split("T", 1)[1][:5]
+
+
+def _sky_word(code: int, is_day: bool) -> str:
+    if code in (0, 1):
+        return "sun" if is_day else "clear"
+    return {
+        2: "cloud",
+        3: "overcast",
+        45: "fog",
+        48: "fog",
+        51: "drizzle",
+        53: "drizzle",
+        55: "drizzle",
+        61: "rain",
+        63: "rain",
+        65: "rain",
+        71: "snow",
+        73: "snow",
+        75: "snow",
+        80: "showers",
+        81: "showers",
+        82: "showers",
+        95: "storm",
+        96: "storm",
+        99: "storm",
+    }.get(code, "sky")
+
+
+def _place_name() -> str:
+    """坐标对应的城市名，一天查一次。"""
+    now = time.time()
+    if _place_cache["name"] and now - _place_cache["time"] < PLACE_INTERVAL:
+        return _place_cache["name"]
+
+    try:
+        data = _fetch_json(
+            "https://api.bigdatacloud.net/data/reverse-geocode-client"
+            f"?latitude={WEATHER_LAT}&longitude={WEATHER_LON}&localityLanguage=en"
+        )
+        name = str(data.get("city") or data.get("locality") or "").strip()
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, KeyError, IndexError):
+        return _place_cache["name"]
+
+    if name:
+        _place_cache["name"] = name.upper()
+        _place_cache["time"] = now
+    return _place_cache["name"]
+
+
+def _load_forecast(lat: str, lon: str, tz: str, with_sun: bool) -> dict:
+    zone = quote(tz or "auto", safe="")
+    sun = "&daily=sunrise,sunset&forecast_days=1" if with_sun else ""
+    return _fetch_json(
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        "&current=temperature_2m,weather_code,is_day"
+        f"&timezone={zone}{sun}"
+    )
+
+
+def _pack_place(key: str, name: str, data: dict | None, tz_fallback: str) -> dict:
+    if not data:
+        return {"key": key, "name": name, "timezone": tz_fallback, "sky": ""}
+    current = data.get("current") or {}
+    code = current.get("weather_code", -1)
+    is_day = bool(current.get("is_day", 1))
+    sky = _sky_word(code, is_day) if current.get("temperature_2m") is not None else ""
+    return {
+        "key": key,
+        "name": name,
+        "timezone": str(data.get("timezone") or tz_fallback),
+        "sky": sky,
+    }
+
+
+def _safe_forecast(lat: str, lon: str, tz: str, with_sun: bool):
+    try:
+        return _load_forecast(lat, lon, tz, with_sun)
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, KeyError):
+        return None
+
+
 def get_weather() -> dict:
     """天气（Open-Meteo，无需 API Key）"""
     now = time.time()
@@ -211,20 +313,31 @@ def get_weather() -> dict:
     result_data = {"available": False, "label": "N/A"}
 
     try:
-        url = (
-            "https://api.open-meteo.com/v1/forecast"
-            f"?latitude={WEATHER_LAT}&longitude={WEATHER_LON}"
-            "&current=temperature_2m,weather_code"
-            "&timezone=auto"
-        )
-        req = urllib.request.Request(url, headers={"User-Agent": "DeskOS/1.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            data = json.loads(resp.read().decode())
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            home_job = pool.submit(_safe_forecast, WEATHER_LAT, WEATHER_LON, "auto", True)
+            extra_jobs = [
+                pool.submit(_safe_forecast, lat, lon, tz, False)
+                for _key, _name, lat, lon, tz in _WORLD_CITIES
+            ]
+            data = home_job.result()
+            extras = [job.result() for job in extra_jobs]
+
+        if not data:
+            raise ValueError("forecast")
 
         current = data.get("current", {})
         temp = current.get("temperature_2m")
         code = current.get("weather_code", -1)
         desc = WMO_WEATHER.get(code, "unknown")
+        daily = data.get("daily") or {}
+        sunrises = daily.get("sunrise") or []
+        sunsets = daily.get("sunset") or []
+        is_day = bool(current.get("is_day", 1))
+        zone = str(data.get("timezone") or "Asia/Shanghai")
+        place = _place_name() or zone.rsplit("/", 1)[-1].replace("_", " ").upper()
+        places = [_pack_place("home", place or "BEIJING", data, zone)]
+        for (key, name, _lat, _lon, tz), extra in zip(_WORLD_CITIES, extras):
+            places.append(_pack_place(key, name, extra, tz))
 
         if temp is not None:
             result_data = {
@@ -232,6 +345,14 @@ def get_weather() -> dict:
                 "temp_c": round(temp),
                 "description": desc,
                 "label": f"{round(temp)}°C  {desc}",
+                "place": place,
+                "timezone": zone,
+                "utc_offset_seconds": int(data.get("utc_offset_seconds") or 0),
+                "sunrise": _hhmm(sunrises[0] if sunrises else ""),
+                "sunset": _hhmm(sunsets[0] if sunsets else ""),
+                "sky": _sky_word(code, is_day),
+                "is_day": is_day,
+                "places": places,
             }
     except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, KeyError):
         pass
