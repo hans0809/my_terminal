@@ -1,0 +1,254 @@
+/* 年进度贴在主页下沿。时钟留在页眉，这里只放百分比、日格和季节。 */
+
+.crt.is-booting .terminal__year {
+  opacity: 0;
+}
+
+.terminal__year {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+}
+
+.year-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35em 0.85em;
+  min-width: 0;
+  font-family: var(--font);
+  font-size: clamp(11px, 1.45vmin, 14px);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-mid);
+}
+
+.year-meta__end {
+  margin-left: auto;
+}
+
+.year-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.year-row {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+}
+
+.year-row__label {
+  font-family: var(--font);
+  font-size: clamp(8px, 1.15vmin, 11px);
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+}
+
+.year-cells {
+  display: grid;
+  grid-template-columns: repeat(31, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.year-cell {
+  display: block;
+  aspect-ratio: 1;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.year-cell.is-past {
+  background: var(--fg-time);
+  box-shadow: none;
+}
+
+.year-cell.is-past.is-weekend {
+  background: var(--fg-mid);
+}
+
+.year-cell.is-future.is-weekend {
+  background: #a4a69f;
+  box-shadow: none;
+}
+
+.year-cell.is-today {
+  background: var(--screen);
+  box-shadow: inset 0 0 0 1px var(--fg-time);
+}
+
+.year-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.year-season {
+  font-family: var(--font);
+  font-size: clamp(12px, 1.6vmin, 15px);
+  letter-spacing: 0.18em;
+  color: var(--fg-time);
+}
+
+.year-count {
+  font-family: var(--font);
+  font-size: clamp(11px, 1.45vmin, 14px);
+  letter-spacing: 0.04em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.year-bar {
+  height: 4px;
+  background: #8d8f88;
+}
+
+.year-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--fg-time);
+}
+
+/* 420×720 预览：页已经铺满，日格改成扁墨线，避免把时钟顶出屏幕。 */
+@media (max-height: 900px) {
+  .terminal {
+    gap: 8px;
+    padding-top: 8px;
+    padding-bottom: 2px;
+  }
+
+  .terminal__year {
+    gap: 4px;
+  }
+
+  .year-meta {
+    font-size: 11px;
+  }
+
+  .year-foot {
+    display: none;
+  }
+
+  .year-grid {
+    gap: 1px;
+  }
+
+  .year-cells {
+    gap: 1px;
+  }
+
+  .year-row {
+    height: 6px;
+  }
+
+  .year-row__label {
+    font-size: 7px;
+    line-height: 6px;
+  }
+
+  .year-cell {
+    aspect-ratio: auto;
+    height: 5px;
+  }
+
+  .year-bar {
+    height: 3px;
+  }
+
+  .terminal__year {
+    padding-right: 18px;
+  }
+}
+
+@media (orientation: portrait) and (min-width: 1000px) and (min-height: 1400px) {
+  #layer-status.is-on .crt-content {
+    height: 100%;
+  }
+
+  body[data-mode="fullscreen"] .terminal,
+  body[data-mode="windowed"] .terminal {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .terminal__year {
+    flex: 0 0 auto;
+    min-height: 0;
+    gap: 10px;
+    padding-top: 12px;
+    justify-content: flex-start;
+  }
+
+  .year-meta,
+  .year-foot,
+  .year-bar {
+    flex-shrink: 0;
+  }
+
+  .year-meta,
+  .year-count,
+  .year-season,
+  .year-row__label {
+    -webkit-font-smoothing: antialiased;
+    font-weight: 400;
+  }
+
+  .year-meta,
+  .year-count {
+    font-size: 20px;
+    color: var(--fg);
+  }
+
+  .year-weekend,
+  .year-meta__end {
+    color: var(--fg);
+  }
+
+  .year-season {
+    font-size: 22px;
+    color: var(--fg);
+  }
+
+  .year-row__label {
+    font-size: 14px;
+  }
+
+  .year-grid {
+    flex: 0 0 auto;
+    width: min(100%, 640px);
+    min-height: 0;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .year-row {
+    min-height: 0;
+    height: auto;
+    align-items: center;
+  }
+
+  .year-cells {
+    gap: 3px;
+    height: auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .year-cell {
+    aspect-ratio: 1;
+    height: auto;
+    min-height: 0;
+  }
+
+  .year-bar {
+    height: 5px;
+  }
+}

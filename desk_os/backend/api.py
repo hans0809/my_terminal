@@ -15,6 +15,7 @@ from backend import article_service, feed_service, key_state, logbook
 from backend.article_fetch import proxy_image
 from backend.cursor_usage import get_cursor_usage
 from backend.focus import get_focus
+from backend.flights import get_flights, get_route
 from backend.system_monitor import get_system_status
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -58,6 +59,18 @@ async def api_key_stream():
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.get("/api/flights")
+def api_flights():
+    """附近空中的飞机。OpenSky 失败时返回上一份数据，不抛到主页。"""
+    return get_flights()
+
+
+@app.get("/api/flights/route")
+def api_flight_route(callsign: str = ""):
+    """一架飞机的起飞、降落城市。没有航线时字段为空。"""
+    return get_route(callsign)
 
 
 @app.get("/api/system")

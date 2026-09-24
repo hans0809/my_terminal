@@ -1,0 +1,317 @@
+/* FLIGHT — 纸上的世界，细线陆地，墨点是飞机。 */
+
+.flight {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.flight__head,
+.flight__foot,
+.flight-page__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  font-family: var(--font);
+  font-size: clamp(10px, 1.4vmin, 13px);
+  letter-spacing: 0.14em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.flight__foot {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+}
+
+.flight__title {
+  letter-spacing: 0.16em;
+  color: var(--fg-mid);
+}
+
+.flight__here {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-mid);
+  cursor: pointer;
+}
+
+.flight__here svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.flight__here:hover,
+.flight__here:focus-visible {
+  color: var(--fg-time);
+}
+
+.flight__row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  column-gap: 12px;
+}
+
+.flight__row > :first-child {
+  justify-self: start;
+}
+
+.flight__age {
+  justify-self: center;
+  color: var(--fg-dim);
+}
+
+.flight__row > :last-child {
+  justify-self: end;
+}
+
+.flight__state.is-live {
+  animation: flight-blink 1.8s steps(2, end) infinite;
+}
+
+@keyframes flight-blink {
+  50% { opacity: 0.35; }
+}
+
+.flight__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  min-width: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+.flight-tag {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  max-width: 70%;
+  padding: 1px 0 1px 6px;
+  box-shadow: inset 2px 0 0 var(--fg-time);
+  background: var(--screen);
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--fg-time);
+  white-space: pre;
+  pointer-events: auto;
+}
+
+.flight__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.flight-grid {
+  color: var(--line);
+  pointer-events: none;
+}
+
+.flight-grid line {
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.flight-land {
+  color: #8d8f88;
+  pointer-events: none;
+}
+
+.flight-land path {
+  fill: currentColor;
+}
+
+.flight-borders {
+  color: #4a4c47;
+  pointer-events: none;
+}
+
+.flight-borders path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.flight-cities {
+  color: var(--fg-time);
+  pointer-events: none;
+}
+
+.flight-cities text {
+  font-family: "Noto Serif SC", "Microsoft YaHei", "SimSun", sans-serif;
+  font-weight: 500;
+  fill: currentColor;
+}
+
+.flight-cities circle {
+  fill: currentColor;
+}
+
+.flight-me {
+  color: var(--fg-time);
+  pointer-events: none;
+}
+
+.flight-me line,
+.flight-me circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.flight-me text {
+  font-family: "Noto Serif SC", "Microsoft YaHei", "SimSun", sans-serif;
+  font-weight: 600;
+  fill: currentColor;
+}
+
+.flight-tracks {
+  color: var(--fg-mid);
+  pointer-events: none;
+}
+
+.flight-tracks line {
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.flight-craft {
+  color: var(--fg-time);
+}
+
+.flight-plane path {
+  fill: currentColor;
+}
+
+.flight-pick {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  display: none;
+}
+
+.flight-plane.is-on .flight-pick {
+  display: block;
+}
+
+.flight.is-offline .flight__stage,
+#app-flight.is-offline .flight__stage {
+  opacity: 0.38;
+}
+
+.flight:focus {
+  outline: 1px solid var(--fg-dim);
+  outline-offset: 3px;
+}
+
+.flight:focus:not(:focus-visible) {
+  outline: none;
+}
+
+#app-flight .flight-page__meta {
+  margin: 0 0 8px;
+  color: var(--fg-mid);
+}
+
+#app-flight .flight__stage--page {
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  height: auto;
+  min-height: 0;
+}
+
+.flight-detail {
+  flex-shrink: 0;
+  min-height: 4.4em;
+  margin-top: 10px;
+  font-family: var(--font);
+  font-size: clamp(12px, 1.6vmin, 15px);
+  line-height: 1.45;
+  letter-spacing: 0.08em;
+  color: var(--fg);
+  white-space: pre-line;
+}
+
+.flight-detail.is-on {
+  color: var(--fg-time);
+}
+
+
+#view-dashboard .flight__stage.is-panning {
+  cursor: grabbing !important;
+}
+
+@media (max-height: 900px) {
+  .flight {
+    width: min(100%, 240px);
+  }
+
+  #app-flight .flight__stage--page {
+    width: 100%;
+    max-height: 42vh;
+  }
+}
+
+@media (orientation: portrait) and (min-width: 1000px) and (min-height: 1400px) {
+  .flight__head,
+  .flight__foot,
+  .flight-page__meta,
+  .flight-detail {
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .flight__title,
+  .flight__age {
+    color: var(--fg);
+  }
+
+  .flight {
+    width: min(100%, 760px);
+  }
+
+  #app-flight {
+    width: min(1180px, 92%);
+  }
+
+  #app-flight .flight__stage--page {
+    width: 100%;
+  }
+
+  .flight-detail {
+    min-height: 3.6em;
+    margin-top: 16px;
+    letter-spacing: 0.06em;
+  }
+
+  .flight-tag {
+    font-size: 22px;
+    line-height: 1.35;
+  }
+}

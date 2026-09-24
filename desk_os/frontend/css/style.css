@@ -103,7 +103,10 @@ html, body,
 .flow-act,
 .flow-search__input,
 .flow-form__input,
-.flow-read__body {
+.flow-read__body,
+#view-dashboard .flight,
+#view-dashboard .flight-plane,
+#view-dashboard #app-flight .flight__stage {
   cursor: var(--cursor-block) !important;
 }
 
@@ -635,12 +638,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .terminal__time {
-  font-size: clamp(22px, 6vmin, 42px);
-  color: var(--fg-time);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  line-height: 1.15;
-  margin-top: clamp(4px, 1vmin, 10px);
+  display: none;
 }
 
 .terminal__weather {
@@ -828,7 +826,8 @@ body[data-mode="windowed"] .terminal__info {
 .crt.is-booting .term-row,
 .crt.is-booting .terminal__rule,
 .crt.is-booting .info-row,
-.crt.is-booting .terminal__log {
+.crt.is-booting .terminal__log,
+.crt.is-booting .flight {
   opacity: 0;
 }
 
@@ -1669,9 +1668,7 @@ body[data-mode="windowed"] .terminal__info {
   .terminal__head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "date weather"
-      "time time";
+    grid-template-areas: "date weather";
     align-items: baseline;
     column-gap: 24px;
     row-gap: 6px;

@@ -191,7 +191,10 @@ def main():
         .flow-act,
         .flow-search__input,
         .flow-form__input,
-        .flow-read__body {{
+        .flow-read__body,
+        #view-dashboard .flight,
+        #view-dashboard .flight-plane,
+        #view-dashboard #app-flight .flight__stage {{
             cursor: url('{url}/assets/cursor-block.png?v=2') 16 16, text !important;
         }}
         """

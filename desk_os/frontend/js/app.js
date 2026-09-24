@@ -58,6 +58,8 @@
     root.querySelectorAll('.sky-col').forEach((el) => nodes.push(el));
     const skyRule = root.querySelector('.terminal__rule--sky');
     if (skyRule) nodes.push(skyRule);
+    const flight = root.querySelector('#flight-home');
+    if (flight) nodes.push(flight);
     root.querySelectorAll('.term-row').forEach((el) => nodes.push(el));
     const rule = root.querySelector('.terminal__dock .terminal__rule');
     if (rule) nodes.push(rule);
@@ -66,6 +68,8 @@
     if (logRule) nodes.push(logRule);
     const log = root.querySelector('.terminal__log');
     if (log) nodes.push(log);
+    const year = root.querySelector('.terminal__year');
+    if (year) nodes.push(year);
     return nodes.filter((el) => !el.classList.contains('is-hidden'));
   }
 
