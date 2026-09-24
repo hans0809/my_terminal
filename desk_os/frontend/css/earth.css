@@ -1,0 +1,191 @@
+/* EARTH — 上航班一行，下地震一行。默认两层都在，点某一行才筛选。 */
+
+.earth__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  font-family: var(--font);
+  font-size: clamp(10px, 1.4vmin, 13px);
+  letter-spacing: 0.14em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.earth__title {
+  flex-shrink: 0;
+  letter-spacing: 0.16em;
+  color: var(--fg-mid);
+}
+
+.flight__stat,
+.earth__stat {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.earth__count {
+  flex-shrink: 0;
+  color: var(--fg-dim);
+}
+
+.flight__head,
+.earth__foot {
+  flex-wrap: nowrap;
+}
+
+[data-map-goto] {
+  cursor: pointer;
+}
+
+[data-map-goto].is-on .flight__title,
+[data-map-goto].is-on .earth__title {
+  color: var(--fg-time);
+}
+
+[data-layer="earth"] .flight-tracks,
+[data-layer="earth"] .flight-craft,
+[data-layer="flight"] .earth-layer {
+  display: none;
+}
+
+[data-layer="earth"] .flight-tag,
+[data-layer="flight"] .earth-tag {
+  display: none;
+}
+
+[data-layer="earth"] #flight-detail {
+  visibility: hidden;
+}
+
+.earth-layer {
+  color: var(--fg-time);
+}
+
+.earth-layer.is-off {
+  opacity: 0.28;
+}
+
+.earth-dot {
+  fill: currentColor;
+}
+
+.earth-halo {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.earth-quake.is-strong .earth-halo {
+  stroke-width: 2;
+  opacity: 0.92;
+}
+
+.earth-quake.is-latest .earth-halo,
+.earth-quake.is-on .earth-halo {
+  opacity: 1;
+}
+
+.earth-ripple {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  transform-origin: center;
+  transform-box: fill-box;
+  animation: earth-ring 1.7s ease-out 1 forwards;
+  pointer-events: none;
+}
+
+.earth-ripple--1 {
+  animation-duration: 2.1s;
+  animation-delay: 0.16s;
+}
+
+.earth-ripple--2 {
+  animation-duration: 2.5s;
+  animation-delay: 0.32s;
+}
+
+.earth-quake.is-m7 .earth-ripple {
+  stroke-width: 1.7;
+}
+
+.earth-quake.is-m7 .earth-dot {
+  animation: earth-core 0.85s steps(2, end) 2;
+}
+
+.earth-quake.is-played .earth-ripple {
+  animation: none;
+  opacity: 0;
+}
+
+.earth-hit {
+  pointer-events: auto;
+}
+
+.earth-tag {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  top: 0;
+  max-width: 72%;
+  padding: 1px 0 1px 6px;
+  box-shadow: inset 2px 0 0 var(--fg-time);
+  background: var(--screen);
+  font-family: var(--font);
+  font-size: 18px;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--fg-time);
+  white-space: pre;
+  pointer-events: auto;
+}
+
+@keyframes earth-ring {
+  from {
+    transform: scale(0.14);
+    opacity: 0.85;
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes earth-core {
+  50% { opacity: 0.28; }
+}
+
+@media (orientation: portrait) and (min-width: 1000px) and (min-height: 1400px) {
+  .earth__foot,
+  .earth__count,
+  .earth__title,
+  .earth__stat,
+  .flight__stat {
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .earth__title {
+    color: var(--fg);
+  }
+
+  [data-map-goto].is-on .flight__title,
+  [data-map-goto].is-on .earth__title {
+    color: var(--fg-time);
+  }
+
+  .earth-tag {
+    font-size: 22px;
+    line-height: 1.35;
+  }
+}

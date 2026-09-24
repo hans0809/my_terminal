@@ -15,6 +15,7 @@ from backend import article_service, feed_service, key_state, logbook
 from backend.article_fetch import proxy_image
 from backend.cursor_usage import get_cursor_usage
 from backend.focus import get_focus
+from backend.earthquakes import get_earthquakes
 from backend.flights import get_flights, get_route
 from backend.system_monitor import get_system_status
 
@@ -65,6 +66,12 @@ async def api_key_stream():
 def api_flights():
     """附近空中的飞机。OpenSky 失败时返回上一份数据，不抛到主页。"""
     return get_flights()
+
+
+@app.get("/api/earthquakes")
+def api_earthquakes():
+    """最近一小时全球地震。USGS 失败时返回上一份数据，不抛到主页。"""
+    return get_earthquakes()
 
 
 @app.get("/api/flights/route")

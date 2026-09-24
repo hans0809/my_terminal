@@ -7,10 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=79">
+  <link rel="stylesheet" href="/css/style.css?v=82">
   <link rel="stylesheet" href="/css/flow.css?v=16">
   <link rel="stylesheet" href="/css/year.css?v=12">
   <link rel="stylesheet" href="/css/flight.css?v=12">
+  <link rel="stylesheet" href="/css/earth.css?v=4">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -58,9 +59,11 @@
 
                 <div class="terminal__rule terminal__rule--sky" aria-hidden="true"></div>
 
-                <section class="flight" id="flight-home" aria-label="flight">
-                  <header class="flight__head">
+                <section class="flight" id="flight-home" data-layer="all" aria-label="flight">
+                  <header class="flight__head" data-map-goto="flight">
                     <span class="flight__title">FLIGHT / <span id="flight-state" class="flight__state">--</span></span>
+                    <span id="flight-count" class="flight__stat">-- AIRCRAFT</span>
+                    <span id="flight-age" class="flight__age">UPDATE --</span>
                     <button type="button" class="flight__here" id="flight-here" aria-label="附近">
                       <svg viewBox="0 0 16 16" aria-hidden="true">
                         <circle cx="8" cy="8" r="3.15" fill="none" stroke="currentColor" stroke-width="1.2"/>
@@ -75,18 +78,18 @@
                       <g class="flight-land"></g>
                       <g class="flight-borders"></g>
                       <g class="flight-cities"></g>
+                      <g class="earth-layer"></g>
                       <g class="flight-tracks"></g>
                       <g class="flight-craft"></g>
                       <g class="flight-me"></g>
                     </svg>
                     <div id="flight-tag" class="flight-tag" hidden></div>
+                    <div id="earth-tag" class="earth-tag" hidden></div>
                   </div>
-                  <footer class="flight__foot">
-                    <span class="flight__row">
-                      <span id="flight-count">-- AIRCRAFT</span>
-                      <span id="flight-age" class="flight__age">UPDATE --</span>
-                      <span id="flight-state-2" class="flight__state">--</span>
-                    </span>
+                  <footer class="earth__foot" data-map-goto="earth">
+                    <span class="earth__title">EARTH / <span id="earth-state" class="flight__state">--</span></span>
+                    <span id="earth-latest" class="earth__stat">—</span>
+                    <span id="earth-count" class="earth__count">-- EVENTS</span>
                   </footer>
                 </section>
 
@@ -411,9 +414,9 @@
               <p class="app-page__title">LOG</p>
               <div id="log-rows" class="log-rows"></div>
             </section>
-            <section id="app-flight" class="app-page">
+            <section id="app-flight" class="app-page" data-layer="all">
               <p class="app-page__title">FLIGHT</p>
-              <div class="flight-page__meta">
+              <div class="flight-page__meta" data-map-goto="flight">
                 <span id="flight-page-count">-- AIRCRAFT</span>
                 <span id="flight-page-state" class="flight__state">--</span>
                 <span id="flight-page-age">UPDATE --</span>
@@ -424,11 +427,17 @@
                   <g class="flight-land"></g>
                   <g class="flight-borders"></g>
                   <g class="flight-cities"></g>
+                  <g class="earth-layer"></g>
                   <g class="flight-tracks"></g>
                   <g class="flight-craft"></g>
                   <g class="flight-me"></g>
                 </svg>
               </div>
+              <footer class="earth__foot" data-map-goto="earth">
+                <span class="earth__title">EARTH / <span id="earth-page-state" class="flight__state">--</span></span>
+                <span id="earth-page-latest" class="earth__stat">—</span>
+                <span id="earth-page-count" class="earth__count">-- EVENTS</span>
+              </footer>
               <p id="flight-detail" class="flight-detail"></p>
             </section>
           </div>
@@ -472,6 +481,8 @@
   <script src="/js/dashboard.js?v=20"></script>
   <script src="/js/sit.js?v=4"></script>
   <script src="/js/flight.js?v=18"></script>
+  <script src="/js/world-map.js?v=4"></script>
+  <script src="/js/earthquake.js?v=4"></script>
   <script src="/js/pixel-dog.js?v=25"></script>
 </body>
 </html>
