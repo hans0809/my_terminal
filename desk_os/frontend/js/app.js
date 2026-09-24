@@ -56,9 +56,13 @@
     const status = root.querySelector('.terminal__status-line');
     if (status) nodes.push(status);
     root.querySelectorAll('.term-row').forEach((el) => nodes.push(el));
-    const rule = root.querySelector('.terminal__rule');
+    const rule = root.querySelector('.terminal__rule:not(.terminal__rule--log)');
     if (rule) nodes.push(rule);
     root.querySelectorAll('.info-row').forEach((el) => nodes.push(el));
+    const logRule = root.querySelector('.terminal__rule--log');
+    if (logRule) nodes.push(logRule);
+    const log = root.querySelector('.terminal__log');
+    if (log) nodes.push(log);
     return nodes.filter((el) => !el.classList.contains('is-hidden'));
   }
 
@@ -159,6 +163,7 @@
     crtMonitor.classList.toggle('is-on', turningOn);
     crtMonitor.classList.toggle('is-off', !turningOn);
     powerBtn.setAttribute('aria-pressed', String(turningOn));
+    if (window.DeskLog) window.DeskLog.note(turningOn ? 'crt-on' : 'crt-off');
     if (turningOn) {
       startBoot();
     } else {

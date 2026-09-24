@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from backend.logbook import note_flow
 from backend.rss_parser import TITLE_LIMIT, URL_LIMIT, _iso_from_text, parse_feed_bytes
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -628,7 +629,7 @@ def _insert_items(conn: sqlite3.Connection, feed_id: int, category: str, items: 
     return new_n
 
 
-def fetch_feed(fid: int) -> dict[str, Any]:
+def fetch_feed(fid: int, announce: bool = True) -> dict[str, Any]:
     item = get_feed(fid)
     if not item:
         return {"ok": False, "error": "missing feed"}
@@ -649,6 +650,8 @@ def fetch_feed(fid: int) -> dict[str, Any]:
             )
         if new_n:
             _invalidate_lists()
+        if announce:
+            note_flow(new_n, False)
         return {"ok": True, "id": fid, "name": name, "new": new_n}
     except Exception as exc:
         err = str(exc)[:180] or "FETCH ERROR"
@@ -658,15 +661,18 @@ def fetch_feed(fid: int) -> dict[str, Any]:
                 (_now(), err, fid),
             )
         print(f"[desk-os] flow fetch fail id={fid} {err}", flush=True)
+        if announce:
+            note_flow(0, True)
         return {"ok": False, "id": fid, "error": "FETCH ERROR", "detail": err, "new": 0}
 
 
 def fetch_all(enabled_only: bool = True) -> dict[str, Any]:
     with _lock:
         feeds = [f for f in list_feeds() if (f["enabled"] if enabled_only else True)]
-        results = [fetch_feed(int(f["id"])) for f in feeds]
+        results = [fetch_feed(int(f["id"]), announce=False) for f in feeds]
         new_n = sum(int(r.get("new") or 0) for r in results)
         ok_n = sum(1 for r in results if r.get("ok"))
+        note_flow(new_n, bool(feeds) and ok_n < len(results))
         if feeds and ok_n == 0:
             return {"ok": False, "error": "FETCH ERROR", "new": 0, "feeds": len(feeds)}
         return {"ok": True, "new": new_n, "feeds": len(feeds), "ok_n": ok_n}
@@ -698,8 +704,10 @@ def fetch_due() -> dict[str, Any]:
     due.sort(key=lambda item: item.get("last_fetch_at") or "")
     batch = due[:MAX_FETCH_PER_TICK]
     with _lock:
-        results = [fetch_feed(int(f["id"])) for f in batch]
+        results = [fetch_feed(int(f["id"]), announce=False) for f in batch]
         new_n = sum(int(r.get("new") or 0) for r in results)
+        failed = any(not r.get("ok") for r in results)
+        note_flow(new_n, failed)
         return {"ok": True, "new": new_n, "feeds": len(batch), "due": len(due)}
 
 
@@ -717,6 +725,7 @@ def start() -> None:
                 fetch_due()
             except Exception as exc:
                 print(f"[desk-os] flow poll error {exc}", flush=True)
+                note_flow(0, True)
             time.sleep(POLL_TICK)
 
     threading.Thread(target=loop, name="flow-poll", daemon=True).start()

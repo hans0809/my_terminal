@@ -16,7 +16,7 @@ SELF_PID = os.getpid()
 LABEL_LIMIT = 32
 
 _cache: dict = {"data": None, "time": 0.0}
-_last_external = ""
+_last_external: dict | None = None
 _proc_names: dict[int, str] = {}
 
 SKIP_TITLES = {
@@ -91,7 +91,27 @@ APP_TAIL = {
     "spotify premium",
 }
 
-EMPTY = {"available": False, "label": "", "kind": "none"}
+EMPTY = {"available": False, "label": "", "kind": "none", "app": ""}
+
+APP_NAMES = {
+    "cursor": "CURSOR",
+    "code": "CODE",
+    "chrome": "CHROME",
+    "msedge": "EDGE",
+    "firefox": "FIREFOX",
+    "explorer": "EXPLORER",
+    "windowsterminal": "TERMINAL",
+    "powershell": "POWERSHELL",
+    "pwsh": "POWERSHELL",
+    "notepad": "NOTEPAD",
+    "notepad++": "NOTEPAD",
+    "spotify": "SPOTIFY",
+    "cloudmusic": "MUSIC",
+    "qqmusic": "MUSIC",
+    "vlc": "VLC",
+    "potplayer": "PLAYER",
+    "potplayermini64": "PLAYER",
+}
 
 
 def _empty() -> dict:
@@ -202,19 +222,33 @@ def _label(text: str) -> str:
     return text
 
 
-def _pack(title: str, kind: str) -> dict:
+def _app_name(exe: str) -> str:
+    stem = os.path.splitext(os.path.basename(exe or ""))[0]
+    known = APP_NAMES.get(stem.lower())
+    if known:
+        return known
+    if not stem:
+        return ""
+    name = stem.upper()
+    if len(name) <= 12:
+        return name
+    token = re.split(r"[\s._\-]+", name)[0]
+    return (token or name)[:12]
+
+
+def _pack(title: str, kind: str, exe: str = "") -> dict:
     cleaned = _strip_app(title)
     label = _label(cleaned or title)
     if not label:
         return _empty()
-    return {"available": True, "label": label, "kind": kind}
+    return {"available": True, "label": label, "kind": kind, "app": _app_name(exe)}
 
 
 def _media_from(windows: list[tuple[str, int, str]]) -> dict | None:
     for title, _pid, exe in windows:
         if exe not in MEDIA_EXE:
             continue
-        packed = _pack(title, "media")
+        packed = _pack(title, "media", exe)
         if not packed["available"]:
             continue
         raw = packed["label"].rstrip("…").lower()
@@ -234,23 +268,23 @@ def _read_focus() -> dict:
 
     if title and not _is_self(title, pid) and not _is_noise(title, exe):
         kind = "media" if exe in MEDIA_EXE else "app"
-        packed = _pack(title, kind)
+        packed = _pack(title, kind, exe)
         if packed["available"]:
             if kind == "media":
                 raw = packed["label"].rstrip("…").lower()
                 if raw in MEDIA_IDLE:
                     packed = _empty()
             if packed["available"]:
-                _last_external = packed["label"]
+                _last_external = packed
                 return packed
 
     media = _media_from(_enum_windows())
     if media:
-        _last_external = media["label"]
+        _last_external = media
         return media
 
     if _last_external:
-        return {"available": True, "label": _last_external, "kind": "app"}
+        return _last_external
     return _empty()
 
 

@@ -269,6 +269,10 @@
       els.weather.textContent = '';
     }
 
+    if (window.DeskLog && Array.isArray(data.log)) {
+      window.DeskLog.paintHome(data.log);
+    }
+
     const line = els.status && els.status.parentElement;
     const focus = data.focus;
     if (focus && focus.available && focus.label) {

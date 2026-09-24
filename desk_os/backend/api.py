@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import article_service, feed_service, key_state
+from backend import article_service, feed_service, key_state, logbook
 from backend.article_fetch import proxy_image
 from backend.cursor_usage import get_cursor_usage
 from backend.focus import get_focus
@@ -27,6 +27,7 @@ TASK_TEXT_LIMIT = 200
 
 app = FastAPI(title="Desk OS", docs_url=None, redoc_url=None)
 feed_service.init_db()
+logbook.boot()
 
 
 @app.get("/api/key-pulse")
@@ -76,6 +77,11 @@ def api_system():
         status["focus"] = get_focus()
     except Exception:
         status["focus"] = {"available": False, "label": "", "kind": "none"}
+    try:
+        logbook.observe(status)
+    except Exception:
+        pass
+    status["log"] = logbook.tail()
     status["datetime"] = {
         "time": now.strftime("%H:%M"),
         "date": now.strftime("%a %d %b").upper(),
@@ -139,11 +145,16 @@ def api_tasks_get():
 @app.put("/api/tasks")
 def api_tasks_put(body: TasksBody):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    before = _load_tasks()
     tasks = _clean_tasks(body.tasks)
     payload = json.dumps({"tasks": tasks}, ensure_ascii=False, indent=2)
     tmp = TASKS_FILE.with_suffix(".tmp")
     tmp.write_text(payload, encoding="utf-8")
     os.replace(tmp, TASKS_FILE)
+    try:
+        logbook.note_tasks(before, tasks)
+    except Exception:
+        pass
     print(f"[desk-os] tasks saved n={len(tasks)}", flush=True)
     return {"ok": True, "n": len(tasks)}
 
@@ -282,6 +293,31 @@ def api_articles_later(aid: int):
 @app.post("/api/articles/{aid}/open")
 def api_articles_open(aid: int):
     return article_service.open_article(aid)
+
+
+_CLIENT_LOG = {
+    "dog-bone": ("event", "DOG BONE"),
+    "crt-on": ("event", "CRT ON"),
+    "crt-off": ("event", "CRT OFF"),
+}
+
+
+class LogIn(BaseModel):
+    code: str = Field(default="", max_length=24)
+
+
+@app.get("/api/log")
+def api_log_get(n: int = 180):
+    return {"lines": logbook.recent(n)}
+
+
+@app.post("/api/log")
+def api_log_post(body: LogIn):
+    spec = _CLIENT_LOG.get((body.code or "").strip().lower())
+    if not spec:
+        return {"ok": False}
+    line = logbook.record(*spec)
+    return {"ok": bool(line), "line": line}
 
 
 @app.get("/")

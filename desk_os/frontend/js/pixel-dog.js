@@ -592,6 +592,10 @@
           bounceY = 0;
           carryBone();
           blurt(Math.random() < 0.5 ? 'woof' : '!', t, 800);
+          if (!treat.noted && window.DeskLog) {
+            treat.noted = true;
+            window.DeskLog.note('dog-bone');
+          }
         }
         return true;
       }

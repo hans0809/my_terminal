@@ -431,6 +431,7 @@
         if (taskNewInput) setTimeout(() => taskNewInput.focus(), 40);
       }
       if (id === 'flow' && window.FlowApp) window.FlowApp.onEnter();
+      if (id === 'log' && window.DeskLog) window.DeskLog.onEnter();
     },
     onLeave(id) {
       if (id === 'task') {
@@ -441,6 +442,7 @@
         if (taskLogInput) taskLogInput.blur();
       }
       if (id === 'flow' && window.FlowApp) window.FlowApp.onLeave();
+      if (id === 'log' && window.DeskLog) window.DeskLog.onLeave();
     },
     onHome() {
       if (window.DeskOS && window.DeskOS.app() === 'task' && taskOpenId) {
