@@ -11,7 +11,6 @@
     date: document.getElementById('date'),
     timeText: document.getElementById('time-text'),
     weather: document.getElementById('weather'),
-    status: document.getElementById('system-status'),
     cpuBar: document.getElementById('cpu-bar'),
     cpuVal: document.getElementById('cpu-val'),
     gpuBar: document.getElementById('gpu-bar'),
@@ -310,21 +309,6 @@
       sky.sunset = '';
     }
     renderWorld(new Date());
-
-    const line = els.status && els.status.parentElement;
-    const focus = data.focus;
-    if (focus && focus.available && focus.label) {
-      els.status.textContent = focus.label;
-      if (line) {
-        line.classList.add('is-focus');
-        line.classList.toggle('is-media', focus.kind === 'media');
-      }
-    } else {
-      els.status.textContent = 'SYSTEM ONLINE';
-      if (line) {
-        line.classList.remove('is-focus', 'is-media');
-      }
-    }
   }
 
   async function fetchSystem() {
@@ -333,9 +317,7 @@
       if (!res.ok) throw new Error('API error');
       updateUI(await res.json());
     } catch {
-      els.status.textContent = 'SYSTEM OFFLINE';
-      const line = els.status && els.status.parentElement;
-      if (line) line.classList.remove('is-focus', 'is-media');
+      return;
     }
   }
 

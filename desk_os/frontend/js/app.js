@@ -53,8 +53,6 @@
     if (!root) return [];
     const nodes = [];
     root.querySelectorAll('.terminal__head > *').forEach((el) => nodes.push(el));
-    const status = root.querySelector('.terminal__status-line');
-    if (status) nodes.push(status);
     root.querySelectorAll('.sky-col').forEach((el) => nodes.push(el));
     const skyRule = root.querySelector('.terminal__rule--sky');
     if (skyRule) nodes.push(skyRule);

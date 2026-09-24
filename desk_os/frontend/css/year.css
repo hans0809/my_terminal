@@ -180,8 +180,8 @@
   .terminal__year {
     flex: 0 0 auto;
     min-height: 0;
-    gap: 10px;
-    padding-top: 12px;
+    gap: 8px;
+    padding-top: 0;
     justify-content: flex-start;
   }
 
@@ -221,7 +221,7 @@
 
   .year-grid {
     flex: 0 0 auto;
-    width: min(100%, 640px);
+    width: 100%;
     min-height: 0;
     max-height: none;
     display: flex;

@@ -650,33 +650,6 @@ body[data-mode="windowed"] .terminal__info {
   min-height: 1em;
 }
 
-.terminal__status-line {
-  display: flex;
-  align-items: baseline;
-  min-width: 0;
-  max-width: 100%;
-  font-size: clamp(10px, 1.4vmin, 13px);
-  color: var(--fg-dim);
-  letter-spacing: 0.18em;
-}
-
-.terminal__status-line::before {
-  content: '> ';
-  color: var(--fg-bar-empty);
-  flex-shrink: 0;
-}
-
-.terminal__status-line span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.terminal__status-line.is-focus {
-  letter-spacing: 0.08em;
-}
-
 .terminal__sky {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -821,7 +794,6 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .crt.is-booting .terminal__head > *,
-.crt.is-booting .terminal__status-line,
 .crt.is-booting .sky-col,
 .crt.is-booting .term-row,
 .crt.is-booting .terminal__rule,
@@ -1657,15 +1629,30 @@ body[data-mode="windowed"] .terminal__info {
 
   body[data-mode="fullscreen"] .terminal,
   body[data-mode="windowed"] .terminal {
+    --desk-gutter: clamp(32px, 3.2vw, 56px);
     width: 100%;
     max-width: none;
     height: auto;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 1fr);
+    grid-template-areas:
+      "head head"
+      "sky sky"
+      "skyrule skyrule"
+      "flight year"
+      "dock dock"
+      "logrule logrule"
+      "log log";
+    column-gap: var(--desk-gutter);
+    row-gap: 18px;
     padding: 0;
-    justify-content: flex-start;
+    align-items: start;
+    align-content: start;
+    justify-content: stretch;
   }
 
   .terminal__head {
+    grid-area: head;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "date weather";
@@ -1710,17 +1697,10 @@ body[data-mode="windowed"] .terminal__info {
     white-space: nowrap;
   }
 
-  .terminal__status-line {
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--fg);
-    letter-spacing: 0.14em;
-    -webkit-font-smoothing: antialiased;
-  }
-
   .terminal__sky {
+    grid-area: sky;
     column-gap: clamp(36px, 4vw, 72px);
-    margin-top: 8px;
+    margin-top: 2px;
   }
 
   .sky-cities {
@@ -1771,11 +1751,25 @@ body[data-mode="windowed"] .terminal__info {
   }
 
   .terminal__dock {
+    grid-area: dock;
     display: flex;
     flex-direction: column;
-    gap: 36px;
+    gap: 28px;
     width: 100%;
-    margin-top: 28px;
+    margin-top: 6px;
+  }
+
+  .flight {
+    grid-area: flight;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .terminal__year {
+    grid-area: year;
+    width: 100%;
+    min-width: 0;
+    padding-top: 2px;
   }
 
   .terminal__rule {
@@ -1783,6 +1777,7 @@ body[data-mode="windowed"] .terminal__info {
   }
 
   .terminal__rule--sky {
+    grid-area: skyrule;
     display: block;
   }
 
@@ -2028,8 +2023,9 @@ body[data-mode="windowed"] .terminal__info {
   }
 
   .terminal__rule--log {
+    grid-area: logrule;
     display: block;
-    margin-top: 8px;
+    margin-top: 0;
   }
 
   .terminal:has(.log-stream:empty) > .terminal__rule--log {
@@ -2037,6 +2033,7 @@ body[data-mode="windowed"] .terminal__info {
   }
 
   .terminal__log {
+    grid-area: log;
     width: 100%;
     max-width: none;
     margin-top: 0;

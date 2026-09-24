@@ -6,6 +6,7 @@
 
 import http.client
 import json
+import math
 import threading
 import time
 import urllib.error
@@ -37,6 +38,7 @@ _HUBS = (
 )
 # 飞出半径或某次请求漏掉时，先按上次位置再留一会儿。
 HOLD_SEC = 100
+HUB_NM = 250
 MAX_DRAW = 900
 
 _lock = threading.Lock()
@@ -106,10 +108,33 @@ def _parse_row(row) -> dict | None:
         return None
 
 
-def _retain(found: dict[str, dict], now: float) -> list[dict]:
-    """把这一轮看到的并进记忆，太久没再出现的才删掉。"""
+def _within_nm(lat: float, lon: float, hub_lat: float, hub_lon: float, nm: float) -> bool:
+    scale = 6371.0 * math.pi / 180.0
+    mean = math.radians((lat + hub_lat) / 2.0)
+    dy = (lat - hub_lat) * scale
+    dx = (lon - hub_lon) * scale * max(0.2, math.cos(mean))
+    limit = nm * 1.852
+    return dx * dx + dy * dy <= limit * limit
+
+
+def _retain(found: dict[str, dict], now: float, hold_hubs: tuple = ()) -> list[dict]:
+    """把这一轮看到的并进记忆，太久没再出现的才删掉。
+
+    某个城市的请求失败时，hold_hubs 里的空域先按上次位置留着，
+    避免这一片飞机被当成已经飞走而整片消失。
+    """
     for icao, plane in found.items():
         _seen[icao] = (now, plane)
+    if hold_hubs:
+        for icao, (_, plane) in list(_seen.items()):
+            lat = plane.get("lat")
+            lon = plane.get("lon")
+            if lat is None or lon is None:
+                continue
+            for hub_lat, hub_lon in hold_hubs:
+                if _within_nm(float(lat), float(lon), hub_lat, hub_lon, HUB_NM + 30):
+                    _seen[icao] = (now, plane)
+                    break
     for icao, (seen_at, _) in list(_seen.items()):
         if now - seen_at > HOLD_SEC:
             del _seen[icao]
@@ -185,13 +210,14 @@ def _pull(url: str) -> list[dict]:
     )
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
         payload = json.loads(resp.read().decode("utf-8"))
-    rows = []
-    if isinstance(payload, dict):
-        got = payload.get("ac")
-        if not isinstance(got, list):
-            got = payload.get("aircraft")
-        if isinstance(got, list):
-            rows = got
+    if not isinstance(payload, dict):
+        raise RuntimeError("adsb")
+    got = payload.get("ac")
+    if not isinstance(got, list):
+        got = payload.get("aircraft")
+    if not isinstance(got, list):
+        raise RuntimeError("adsb")
+    rows = got
     planes = []
     for row in rows:
         item = _from_adsb(row)
@@ -200,18 +226,21 @@ def _pull(url: str) -> list[dict]:
     return planes
 
 
-def _gather(template: str) -> dict[str, dict]:
+def _gather(template: str, hubs=_HUBS) -> tuple[dict[str, dict], tuple]:
+    """返回这一轮看到的飞机，以及请求失败的城市中心。"""
     found: dict[str, dict] = {}
-    urls = [template.format(lat=lat, lon=lon) for lat, lon in _HUBS]
+    failed = []
+    urls = [(lat, lon, template.format(lat=lat, lon=lon)) for lat, lon in hubs]
     with ThreadPoolExecutor(max_workers=5) as pool:
-        futures = [pool.submit(_pull, url) for url in urls]
+        futures = {pool.submit(_pull, url): (lat, lon) for lat, lon, url in urls}
         for fut in as_completed(futures):
+            hub = futures[fut]
             try:
                 for plane in fut.result():
                     found[plane["icao24"]] = plane
             except Exception:
-                continue
-    return found
+                failed.append(hub)
+    return found, tuple(failed)
 
 
 def _opensky() -> dict[str, dict]:
@@ -248,6 +277,7 @@ def _fetch() -> None:
     global _opensky_block_until
     now = time.time()
     found: dict[str, dict] = {}
+    hold_hubs: tuple = ()
     ttl = HUB_TTL
     if now >= _opensky_block_until:
         try:
@@ -258,21 +288,29 @@ def _fetch() -> None:
         except Exception:
             _opensky_block_until = time.time() + 10 * 60
     if not found:
-        found = _gather(_ADSB_URL)
-        if len(found) < 8:
-            for icao, plane in _gather(_ADSB_FALLBACK).items():
+        found, failed = _gather(_ADSB_URL)
+        if failed:
+            extra, failed = _gather(_ADSB_FALLBACK, failed)
+            for icao, plane in extra.items():
                 found.setdefault(icao, plane)
+        if len(found) < 8 and not failed:
+            extra, failed = _gather(_ADSB_FALLBACK)
+            for icao, plane in extra.items():
+                found.setdefault(icao, plane)
+        hold_hubs = failed
         ttl = HUB_TTL
-    if not found:
+    if not found and not hold_hubs:
         raise RuntimeError("adsb")
     now = time.time()
     updated = datetime.now(timezone.utc).isoformat()
     with _lock:
-        planes = _retain(found, now)
+        if not found and not _seen:
+            raise RuntimeError("adsb")
+        planes = _retain(found, now, hold_hubs)
         _state["fetched_at"] = now
         _state["fresh_until"] = now + ttl
         _state["updated_at"] = updated
-        _state["stale"] = False
+        _state["stale"] = not bool(found)
         _state["offline"] = False
         _state["count"] = len(planes)
         _state["aircraft"] = planes

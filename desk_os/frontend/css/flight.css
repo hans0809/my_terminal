@@ -293,7 +293,8 @@
   }
 
   .flight {
-    width: min(100%, 760px);
+    width: 100%;
+    min-width: 0;
   }
 
   #app-flight {
