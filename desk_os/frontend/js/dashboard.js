@@ -303,10 +303,6 @@
     if (data.weather && data.weather.available) {
       els.weather.textContent = data.weather.label;
       applyWeather(data.weather);
-    } else {
-      els.weather.textContent = '';
-      sky.sunrise = '';
-      sky.sunset = '';
     }
     renderWorld(new Date());
   }

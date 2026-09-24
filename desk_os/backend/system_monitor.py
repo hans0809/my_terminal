@@ -26,6 +26,7 @@ PING_INTERVAL = 10
 WEATHER_LAT = os.environ.get("DESK_OS_WEATHER_LAT", "39.9")
 WEATHER_LON = os.environ.get("DESK_OS_WEATHER_LON", "116.4")
 WEATHER_INTERVAL = 900
+WEATHER_RETRY = 20
 PLACE_INTERVAL = 86400
 
 # 北京时间右侧的另外两地。时区用 IANA 名，夏令时由接口给出。
@@ -307,8 +308,13 @@ def _safe_forecast(lat: str, lon: str, tz: str, with_sun: bool):
 def get_weather() -> dict:
     """天气（Open-Meteo，无需 API Key）"""
     now = time.time()
-    if _weather_cache["data"] and now - _weather_cache["time"] < WEATHER_INTERVAL:
-        return _weather_cache["data"]
+    cached = _weather_cache["data"]
+    age = now - _weather_cache["time"] if cached else WEATHER_INTERVAL
+    if cached and cached.get("available") and age < WEATHER_INTERVAL:
+        return cached
+    # 失败只挡一小会儿。成功结果被失败覆盖后，温度会空 15 分钟。
+    if cached and not cached.get("available") and age < WEATHER_RETRY:
+        return cached
 
     result_data = {"available": False, "label": "N/A"}
 
@@ -354,8 +360,17 @@ def get_weather() -> dict:
                 "is_day": is_day,
                 "places": places,
             }
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, KeyError):
-        pass
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError, ValueError, KeyError) as exc:
+        print(f"[desk-os] weather: {exc}")
+
+    if result_data.get("available"):
+        _weather_cache["data"] = result_data
+        _weather_cache["time"] = now
+        return result_data
+
+    if cached and cached.get("available"):
+        _weather_cache["time"] = now - (WEATHER_INTERVAL - WEATHER_RETRY)
+        return cached
 
     _weather_cache["data"] = result_data
     _weather_cache["time"] = now
