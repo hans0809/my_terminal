@@ -192,6 +192,8 @@ def main():
         .flow-search__input,
         .flow-form__input,
         .flow-read__body,
+        .sit-field,
+        .sit-step,
         #view-dashboard .flight,
         #view-dashboard .flight-plane,
         #view-dashboard #app-flight .flight__stage {{

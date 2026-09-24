@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=72">
+  <link rel="stylesheet" href="/css/style.css?v=79">
   <link rel="stylesheet" href="/css/flow.css?v=16">
   <link rel="stylesheet" href="/css/year.css?v=12">
   <link rel="stylesheet" href="/css/flight.css?v=12">
@@ -23,6 +23,7 @@
                 <header class="terminal__head">
                   <div id="date" class="terminal__date">--- / --- --</div>
                   <div id="time-text" class="terminal__time">--:--</div>
+                  <div id="sit-count" class="terminal__sit" role="timer" hidden></div>
                   <div id="weather" class="terminal__weather"></div>
                 </header>
 
@@ -204,6 +205,17 @@
                 </span>
                 <span class="app-name">FLOW</span>
               </button>
+              <button class="app-tile" type="button" data-app="sit">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
+                    <rect x="13" y="4" width="6" height="6"/>
+                    <rect x="11" y="11" width="10" height="8"/>
+                    <rect x="11" y="20" width="3" height="8"/>
+                    <rect x="18" y="20" width="3" height="8"/>
+                  </svg>
+                </span>
+                <span class="app-name">SIT</span>
+              </button>
               <button class="app-tile" type="button" data-app="log">
                 <span class="app-icon" aria-hidden="true">
                   <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
@@ -355,6 +367,46 @@
                 </div>
               </div>
             </section>
+            <section id="app-sit" class="app-page">
+              <p class="app-page__title">SIT</p>
+              <div class="sit-set">
+                <div class="sit-row">
+                  <span class="sit-k">EVERY</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-dir="-1" aria-label="减少间隔">−</button>
+                    <input id="sit-every" class="sit-field sit-field--num" inputmode="numeric" maxlength="3" spellcheck="false" autocomplete="off" aria-label="间隔分钟">
+                    <span class="sit-unit">MIN</span>
+                    <button class="sit-step" type="button" data-dir="1" aria-label="增加间隔">+</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">FROM</span>
+                  <span class="sit-when">
+                    <input id="sit-from" class="sit-field sit-field--clock" maxlength="5" inputmode="numeric" spellcheck="false" autocomplete="off" aria-label="开始时间">
+                    <span class="sit-k">TO</span>
+                    <input id="sit-to" class="sit-field sit-field--clock" maxlength="5" inputmode="numeric" spellcheck="false" autocomplete="off" aria-label="结束时间">
+                  </span>
+                </div>
+                <label class="sit-block" for="sit-phrase">
+                  <span class="sit-k">LINE</span>
+                  <span class="sit-stack">
+                    <input id="sit-phrase" class="sit-field" maxlength="40" spellcheck="false" autocomplete="off">
+                    <span id="sit-preview" class="sit-preview"></span>
+                    <span class="sit-hint">用 {时间} 放倒计时，例如 {时间}后起身</span>
+                  </span>
+                </label>
+                <label class="sit-block" for="sit-alert">
+                  <span class="sit-k">SCREEN</span>
+                  <span class="sit-stack">
+                    <input id="sit-alert" class="sit-field" maxlength="40" spellcheck="false" autocomplete="off">
+                    <span class="sit-hint">到点后铺满屏幕的那一句，同样可以写 {时间}</span>
+                  </span>
+                </label>
+                <div class="task-foot">
+                  <button id="sit-reset" class="task-drop" type="button">RESET</button>
+                </div>
+              </div>
+            </section>
             <section id="app-log" class="app-page">
               <p class="app-page__title">LOG</p>
               <div id="log-rows" class="log-rows"></div>
@@ -389,6 +441,15 @@
           </aside>
           <canvas id="pixel-bone" class="pixel-bone" aria-hidden="true"></canvas>
           <div class="eink-flash" id="eink-flash" aria-hidden="true"></div>
+          <div id="sit-fault" class="sit-fault" hidden role="alert" aria-label="该起身活动一下了">
+            <div class="sit-fault__field" aria-hidden="true">
+              <div class="sit-fault__swarm sit-fault__swarm--echo"></div>
+              <div class="sit-fault__swarm"></div>
+              <div class="sit-fault__giants"></div>
+            </div>
+            <div class="sit-fault__rip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="sit-fault__flash" aria-hidden="true"></div>
+          </div>
         </div>
       </div>
       <button id="desk-btn" class="crt__key crt__desk" type="button" aria-pressed="false" aria-label="apps">
@@ -409,6 +470,7 @@
   <script src="/js/flow.js?v=11"></script>
   <script src="/js/log.js?v=7"></script>
   <script src="/js/dashboard.js?v=19"></script>
+  <script src="/js/sit.js?v=4"></script>
   <script src="/js/flight.js?v=18"></script>
   <script src="/js/pixel-dog.js?v=25"></script>
 </body>
