@@ -7,11 +7,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=82">
+  <link rel="stylesheet" href="/css/style.css?v=83">
   <link rel="stylesheet" href="/css/flow.css?v=16">
-  <link rel="stylesheet" href="/css/year.css?v=12">
+  <link rel="stylesheet" href="/css/year.css?v=20">
   <link rel="stylesheet" href="/css/flight.css?v=13">
-  <link rel="stylesheet" href="/css/earth.css?v=5">
+  <link rel="stylesheet" href="/css/earth.css?v=6">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -58,6 +58,7 @@
                 </section>
 
                 <div class="terminal__rule terminal__rule--sky" aria-hidden="true"></div>
+                <div class="terminal__rule terminal__rule--map" aria-hidden="true"></div>
 
                 <section class="flight" id="flight-home" data-layer="all" aria-label="flight">
                   <header class="flight__head" data-map-goto="flight">
@@ -170,12 +171,18 @@
                     <span id="year-week">w:--</span>
                     <span id="year-weekend" class="year-meta__end">weekend</span>
                   </p>
-                  <div id="year-grid" class="year-grid" role="img" aria-label="days of the year"></div>
+                  <div id="year-grid" class="year-grid" aria-label="days of the year"></div>
                   <p class="year-foot">
                     <span id="year-season" class="year-season">—</span>
                     <span id="year-count" class="year-count">Day — of —</span>
                   </p>
                   <div class="year-bar" aria-hidden="true"><span id="year-bar-fill"></span></div>
+                  <p class="year-term" id="year-term" aria-live="polite">
+                    <span id="year-term-name" class="year-term__name">—</span>
+                    <span id="year-term-hou-idx" class="year-term__hou-idx">—</span>
+                    <span id="year-term-hou" class="year-term__hou-name">—</span>
+                    <span class="year-term__next">next <span id="year-term-next">—</span> <span id="year-term-next-date">—</span></span>
+                  </p>
                 </section>
               </main>
             </div>
@@ -471,7 +478,7 @@
 
   <script src="/js/app.js?v=16"></script>
   <script src="/js/desk.js?v=19"></script>
-  <script src="/js/year.js?v=2"></script>
+  <script src="/js/year.js?v=5"></script>
   <script src="/js/flow.js?v=11"></script>
   <script src="/js/log.js?v=7"></script>
   <script src="/js/dashboard.js?v=20"></script>
@@ -479,6 +486,6 @@
   <script src="/js/flight.js?v=21"></script>
   <script src="/js/world-map.js?v=4"></script>
   <script src="/js/earthquake.js?v=4"></script>
-  <script src="/js/pixel-dog.js?v=25"></script>
+  <script src="/js/pixel-dog.js?v=26"></script>
 </body>
 </html>

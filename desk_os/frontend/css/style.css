@@ -1100,6 +1100,10 @@ body[data-mode="windowed"] .terminal__info {
   margin-top: 0;
 }
 
+.terminal__rule--map {
+  display: none;
+}
+
 .terminal:has(.log-stream:empty) > .terminal__rule--log {
   display: none;
 }
@@ -1965,6 +1969,7 @@ body[data-mode="windowed"] .terminal__info {
       "sky sky"
       "skyrule skyrule"
       "flight year"
+      "maprule maprule"
       "dock dock"
       "logrule logrule"
       "log log";
@@ -2100,17 +2105,19 @@ body[data-mode="windowed"] .terminal__info {
     flex-direction: column;
     gap: 28px;
     width: 100%;
-    margin-top: 6px;
+    margin-top: 0;
   }
 
   .flight {
     grid-area: flight;
+    align-self: stretch;
     width: 100%;
     min-width: 0;
   }
 
   .terminal__year {
     grid-area: year;
+    align-self: stretch;
     width: 100%;
     min-width: 0;
     padding-top: 2px;
@@ -2122,6 +2129,11 @@ body[data-mode="windowed"] .terminal__info {
 
   .terminal__rule--sky {
     grid-area: skyrule;
+    display: block;
+  }
+
+  .terminal__rule--map {
+    grid-area: maprule;
     display: block;
   }
 

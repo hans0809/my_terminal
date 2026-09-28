@@ -1140,6 +1140,7 @@
     crtScreen.addEventListener('click', (e) => {
       if (document.body.dataset.layer && document.body.dataset.layer !== 'status') return;
       if (e.target.closest && e.target.closest('#flight-home')) return;
+      if (e.target.closest && e.target.closest('.terminal__year')) return;
       if (treatBusy || treat) return;
       dropTreat(e.clientX, e.clientY);
     });

@@ -56,10 +56,19 @@
 }
 
 .year-cell {
+  position: relative;
   display: block;
-  aspect-ratio: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  color: inherit;
   background: transparent;
+  aspect-ratio: 1;
   box-shadow: inset 0 0 0 1px var(--line);
+  cursor: inherit;
 }
 
 .year-cell.is-past {
@@ -79,6 +88,35 @@
 .year-cell.is-today {
   background: var(--screen);
   box-shadow: inset 0 0 0 1px var(--fg-time);
+}
+
+.year-cell.is-term::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30%;
+  height: 30%;
+  min-width: 3px;
+  min-height: 3px;
+  transform: translate(-50%, -50%);
+  background: var(--screen);
+  pointer-events: none;
+}
+
+.year-cell.is-term.is-future:not(.is-weekend)::after,
+.year-cell.is-term.is-today::after {
+  background: var(--fg-time);
+}
+
+.year-cell.is-on {
+  outline: 1px solid var(--fg-time);
+  outline-offset: 0;
+  z-index: 1;
+}
+
+.year-cell:focus-visible {
+  outline: 1px solid var(--fg-time);
 }
 
 .year-foot {
@@ -115,6 +153,10 @@
   background: var(--fg-time);
 }
 
+.year-term {
+  display: none;
+}
+
 /* 420×720 预览：页已经铺满，日格改成扁墨线，避免把时钟顶出屏幕。 */
 @media (max-height: 900px) {
   .terminal {
@@ -131,7 +173,12 @@
     font-size: 11px;
   }
 
-  .year-foot {
+  .year-foot,
+  .year-term {
+    display: none;
+  }
+
+  .year-cell.is-term::after {
     display: none;
   }
 
@@ -178,8 +225,6 @@
   }
 
   .terminal__year {
-    flex: 0 0 auto;
-    min-height: 0;
     gap: 8px;
     padding-top: 0;
     justify-content: flex-start;
@@ -189,6 +234,44 @@
   .year-foot,
   .year-bar {
     flex-shrink: 0;
+  }
+
+  .year-term {
+    display: flex;
+    align-items: baseline;
+    gap: 0.55em;
+    flex: 0 0 auto;
+    min-width: 0;
+    margin-top: auto;
+    padding-top: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .year-term__name,
+  .year-term__hou-idx,
+  .year-term__hou-name,
+  #year-term-next {
+    font-family: 'Noto Serif SC', 'Source Serif 4', serif;
+    font-weight: 500;
+    color: var(--fg-time);
+    letter-spacing: 0.12em;
+  }
+
+  .year-term__next {
+    margin-left: auto;
+    font-family: var(--font);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #year-term-next-date {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
   }
 
   .year-meta,
