@@ -75,9 +75,9 @@ def api_earthquakes():
 
 
 @app.get("/api/flights/route")
-def api_flight_route(callsign: str = ""):
+def api_flight_route(callsign: str = "", lat: float | None = None, lon: float | None = None):
     """一架飞机的起飞、降落城市。没有航线时字段为空。"""
-    return get_route(callsign)
+    return get_route(callsign, lat, lon)
 
 
 @app.get("/api/system")

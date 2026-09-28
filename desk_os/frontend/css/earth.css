@@ -46,6 +46,7 @@
   color: var(--fg-time);
 }
 
+[data-layer="earth"] .flight-route,
 [data-layer="earth"] .flight-tracks,
 [data-layer="earth"] .flight-craft,
 [data-layer="flight"] .earth-layer {

@@ -38,6 +38,17 @@
     return document.createElementNS(NS, name);
   }
 
+  function ensureRouteLayer(svg) {
+    let layer = svg.querySelector('.flight-route');
+    if (layer) return layer;
+    layer = el('g');
+    layer.setAttribute('class', 'flight-route');
+    const tracks = svg.querySelector('.flight-tracks');
+    if (tracks) svg.insertBefore(layer, tracks);
+    else svg.appendChild(layer);
+    return layer;
+  }
+
   function bindView(svg, page) {
     const view = {
       svg,
@@ -48,6 +59,7 @@
       cities: svg.querySelector('.flight-cities'),
       cityNodes: [],
       tracks: svg.querySelector('.flight-tracks'),
+      route: ensureRouteLayer(svg),
       craft: svg.querySelector('.flight-craft'),
       me: svg.querySelector('.flight-me'),
       meMark: null,
@@ -193,6 +205,10 @@
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
         if (row.on_ground === true) return;
         const heading = Number(row.heading);
+        const originLat = Number(row.origin_lat);
+        const originLon = Number(row.origin_lon);
+        const destinationLat = Number(row.destination_lat);
+        const destinationLon = Number(row.destination_lon);
         out.push({
           icao24: row.icao24,
           callsign: String(row.callsign || row.icao24).trim() || row.icao24.toUpperCase(),
@@ -201,6 +217,12 @@
           altitude: row.altitude == null || row.altitude === '' ? null : Number(row.altitude),
           velocity: Number(row.velocity) || 0,
           heading: Number.isFinite(heading) ? heading : 0,
+          origin: String(row.origin || '').trim(),
+          destination: String(row.destination || '').trim(),
+          originLat: Number.isFinite(originLat) ? originLat : null,
+          originLon: Number.isFinite(originLon) ? originLon : null,
+          destinationLat: Number.isFinite(destinationLat) ? destinationLat : null,
+          destinationLon: Number.isFinite(destinationLon) ? destinationLon : null,
         });
       } catch {
         /* 单架异常不影响其余 */
@@ -294,6 +316,7 @@
       aircraft: cleanList(data && data.aircraft),
     };
     if (!payload.aircraft.length && payload.offline) payload.count = 0;
+    absorbRoutes(payload.aircraft);
     if (!same) ingest(payload.aircraft);
     paintChrome(true);
     scheduleWarm();
@@ -370,11 +393,18 @@
   }
 
   function paintDetail() {
-    if (!flightTag) return;
+    const detail = document.getElementById('flight-detail');
     const plane = selected ? latest.get(selected) : null;
     if (!plane) {
-      flightTag.hidden = true;
-      flightTag.textContent = '';
+      if (flightTag) {
+        flightTag.hidden = true;
+        flightTag.textContent = '';
+      }
+      if (detail) {
+        detail.textContent = '';
+        detail.classList.remove('is-on');
+      }
+      drawRoute(null);
       return;
     }
     const route = routes.get(routeKey(plane.callsign));
@@ -385,9 +415,76 @@
         : 'ROUTE --';
     }
     const hdg = String(Math.round(((plane.heading % 360) + 360) % 360)).padStart(3, '0');
-    flightTag.hidden = false;
-    flightTag.textContent = `${plane.callsign}\n${line}\nALT ${fmtFt(plane.altitude)} ft\nHDG ${hdg}`;
-    placeTag();
+    const text = `${plane.callsign}\n${line}\nALT ${fmtFt(plane.altitude)} ft\nHDG ${hdg}`;
+    if (flightTag) {
+      flightTag.hidden = false;
+      flightTag.textContent = text;
+      placeTag();
+    }
+    if (detail) {
+      detail.textContent = text;
+      detail.classList.add('is-on');
+    }
+    drawRoute(route && !route.pending ? route : null);
+  }
+
+  function finitePair(lat, lon) {
+    return Number.isFinite(lat) && Number.isFinite(lon);
+  }
+
+  function routeArcs(route) {
+    if (!route || !finitePair(route.originLat, route.originLon)) return [];
+    if (!finitePair(route.destinationLat, route.destinationLon)) return [];
+    const steps = 64;
+    const φ1 = route.originLat * Math.PI / 180;
+    const λ1 = route.originLon * Math.PI / 180;
+    const φ2 = route.destinationLat * Math.PI / 180;
+    const λ2 = route.destinationLon * Math.PI / 180;
+    const hav = Math.sin((φ2 - φ1) / 2) ** 2
+      + Math.cos(φ1) * Math.cos(φ2) * Math.sin((λ2 - λ1) / 2) ** 2;
+    const delta = 2 * Math.asin(Math.min(1, Math.sqrt(hav)));
+    if (!Number.isFinite(delta) || delta < 1e-4) return [];
+    const pts = [];
+    for (let i = 0; i <= steps; i += 1) {
+      const f = i / steps;
+      const a = Math.sin((1 - f) * delta) / Math.sin(delta);
+      const b = Math.sin(f * delta) / Math.sin(delta);
+      const x = a * Math.cos(φ1) * Math.cos(λ1) + b * Math.cos(φ2) * Math.cos(λ2);
+      const y = a * Math.cos(φ1) * Math.sin(λ1) + b * Math.cos(φ2) * Math.sin(λ2);
+      const z = a * Math.sin(φ1) + b * Math.sin(φ2);
+      pts.push({
+        lon: Math.atan2(y, x) * 180 / Math.PI,
+        lat: Math.atan2(z, Math.hypot(x, y)) * 180 / Math.PI,
+      });
+    }
+    const arcs = [];
+    let cur = [];
+    pts.forEach((pt, index) => {
+      if (index && crosses(pts[index - 1].lon, pt.lon)) {
+        if (cur.length > 1) arcs.push(cur);
+        cur = [pt];
+      } else {
+        cur.push(pt);
+      }
+    });
+    if (cur.length > 1) arcs.push(cur);
+    return arcs;
+  }
+
+  function drawRoute(route) {
+    const arcs = routeArcs(route);
+    views.forEach((view) => {
+      if (!view.route) return;
+      while (view.route.firstChild) view.route.firstChild.remove();
+      arcs.forEach((arc) => {
+        const path = el('path');
+        path.setAttribute('d', arc.map((pt, index) => {
+          const xy = project(pt.lon, pt.lat);
+          return `${index ? 'L' : 'M'}${xy[0].toFixed(1)} ${xy[1].toFixed(1)}`;
+        }).join(' '));
+        view.route.appendChild(path);
+      });
+    });
   }
 
   function placeTag() {
@@ -439,21 +536,51 @@
     return String(callsign || '').trim().toUpperCase();
   }
 
+  function readRoute(data) {
+    const originLat = Number(data && (data.originLat != null ? data.originLat : data.origin_lat));
+    const originLon = Number(data && (data.originLon != null ? data.originLon : data.origin_lon));
+    const destinationLat = Number(data && (data.destinationLat != null ? data.destinationLat : data.destination_lat));
+    const destinationLon = Number(data && (data.destinationLon != null ? data.destinationLon : data.destination_lon));
+    return {
+      pending: false,
+      origin: String((data && data.origin) || '').trim(),
+      destination: String((data && data.destination) || '').trim(),
+      originLat: Number.isFinite(originLat) ? originLat : null,
+      originLon: Number.isFinite(originLon) ? originLon : null,
+      destinationLat: Number.isFinite(destinationLat) ? destinationLat : null,
+      destinationLon: Number.isFinite(destinationLon) ? destinationLon : null,
+    };
+  }
+
+  function rememberRoute(callsign, data) {
+    const key = routeKey(callsign || (data && data.callsign));
+    if (!key) return;
+    routes.set(key, readRoute(data));
+  }
+
+  function absorbRoutes(list) {
+    if (!Array.isArray(list)) return;
+    list.forEach((plane) => {
+      if (!plane || !plane.origin || !plane.destination) return;
+      rememberRoute(plane.callsign, plane);
+    });
+  }
+
   function startRoute(key) {
     const known = routes.get(key);
     if (!key || key.length < 3) return;
     if (known && !known.pending) return;
     if (known && known.pending) return;
+    const plane = [...latest.values()].find((item) => routeKey(item.callsign) === key);
+    const qs = new URLSearchParams({ callsign: key });
+    if (plane && Number.isFinite(plane.lat)) qs.set('lat', String(plane.lat));
+    if (plane && Number.isFinite(plane.lon)) qs.set('lon', String(plane.lon));
     routes.set(key, { pending: true, origin: '', destination: '' });
     routeWorkers += 1;
-    fetch(`/api/flights/route?callsign=${encodeURIComponent(key)}`)
+    fetch(`/api/flights/route?${qs.toString()}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error('route'))))
       .then((data) => {
-        routes.set(key, {
-          pending: false,
-          origin: String((data && data.origin) || '').trim(),
-          destination: String((data && data.destination) || '').trim(),
-        });
+        rememberRoute(key, data);
         paintDetail();
       })
       .catch(() => {
@@ -467,7 +594,7 @@
   }
 
   function pumpRoutes() {
-    while (routeWorkers < 4 && routeQueue.length) {
+    while (routeWorkers < 8 && routeQueue.length) {
       const key = routeQueue.shift();
       const known = routes.get(key);
       if (known) continue;
@@ -511,10 +638,7 @@
 
   function warmVisible() {
     const zoom = VB_W / Math.max(viewBox.w, 1);
-    if (zoom < 6) {
-      routeQueue.length = 0;
-      return;
-    }
+    const limit = zoom < 6 ? 40 : 80;
     const padX = viewBox.w * 0.08;
     const padY = viewBox.h * 0.08;
     const x0 = viewBox.x - padX;
@@ -534,13 +658,13 @@
       hits.push({ callsign: plane.callsign, d: dx * dx + dy * dy });
     });
     hits.sort((a, b) => a.d - b.d);
-    const want = new Set(hits.slice(0, 48).map((item) => routeKey(item.callsign)));
+    const want = new Set(hits.slice(0, limit).map((item) => routeKey(item.callsign)));
     const picked = selected ? latest.get(selected) : null;
     if (picked) want.add(routeKey(picked.callsign));
     for (let i = routeQueue.length - 1; i >= 0; i -= 1) {
       if (!want.has(routeQueue[i])) routeQueue.splice(i, 1);
     }
-    hits.slice(0, 48).forEach((item) => enqueueRoute(item.callsign, false));
+    hits.slice(0, limit).forEach((item) => enqueueRoute(item.callsign, false));
   }
 
   function applyView() {
@@ -586,6 +710,9 @@
   function selectPlane(id) {
     selected = id || '';
     const plane = selected ? latest.get(selected) : null;
+    if (plane && plane.origin && plane.destination) {
+      rememberRoute(plane.callsign, plane);
+    }
     if (plane) askRoute(plane.callsign);
     paintDetail();
     views.forEach(syncPick);
@@ -624,6 +751,10 @@
     mark.append(pick, shape);
     g.append(hit, mark);
     if (view.page) {
+      g.addEventListener('pointerdown', (event) => {
+        const plane = latest.get(id);
+        if (plane) askRoute(plane.callsign);
+      });
       g.addEventListener('click', (event) => {
         event.stopPropagation();
         selectPlane(id);
@@ -878,6 +1009,20 @@
   if (homeStage && homeSvg) {
     let drag = null;
 
+    function planeAt(clientX, clientY) {
+      const hit = document.elementFromPoint(clientX, clientY);
+      const plane = hit && hit.closest ? hit.closest('.flight-plane') : null;
+      if (!plane || !homeSvg.contains(plane)) return null;
+      return latest.get(plane.dataset.icao || '') || null;
+    }
+
+    function primeRoute(clientX, clientY, immediate) {
+      const plane = planeAt(clientX, clientY);
+      if (!plane) return;
+      if (immediate) askRoute(plane.callsign);
+      else enqueueRoute(plane.callsign, true);
+    }
+
     homeStage.addEventListener('pointerdown', (event) => {
       if (event.button !== 0) return;
       try { homeStage.setPointerCapture(event.pointerId); } catch (_) { /* 指针已松开 */ }
@@ -888,10 +1033,14 @@
         vy: viewBox.y,
         moved: false,
       };
+      primeRoute(event.clientX, event.clientY, true);
     });
 
     homeStage.addEventListener('pointermove', (event) => {
-      if (!drag) return;
+      if (!drag) {
+        primeRoute(event.clientX, event.clientY, false);
+        return;
+      }
       const dx = event.clientX - drag.x;
       const dy = event.clientY - drag.y;
       if (Math.hypot(dx, dy) > 4) drag.moved = true;

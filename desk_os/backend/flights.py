@@ -4,7 +4,6 @@
 所以大约 16 分钟才打一次，避免再被限流。额度用完时退回 adsb.lol 的几处空域。
 """
 
-import http.client
 import json
 import math
 import threading
@@ -13,7 +12,7 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from urllib.parse import urlparse
+from pathlib import Path
 
 FETCH_TIMEOUT = 8
 OPENSKY_URL = "https://opensky-network.org/api/states/all"
@@ -153,12 +152,19 @@ def _retain(found: dict[str, dict], now: float, hold_hubs: tuple = ()) -> list[d
 
 def _copy() -> dict:
     has = bool(_state["updated_at"])
+    aircraft = []
+    for plane in _state["aircraft"]:
+        row = dict(plane)
+        route = _cached_route(plane.get("callsign"))
+        if route and route.get("origin") and route.get("destination"):
+            row.update(route)
+        aircraft.append(row)
     return {
         "updated_at": _state["updated_at"],
         "stale": bool(_state["stale"] or not has),
         "offline": bool(_state["offline"] and not _state["aircraft"]),
         "count": int(_state["count"]),
-        "aircraft": [dict(plane) for plane in _state["aircraft"]],
+        "aircraft": aircraft,
     }
 
 
@@ -314,130 +320,231 @@ def _fetch() -> None:
         _state["offline"] = False
         _state["count"] = len(planes)
         _state["aircraft"] = planes
+    _schedule_warm(planes)
 
 
 _route_lock = threading.Lock()
 _route_cache: dict[str, tuple[float, dict]] = {}
 _route_wait: dict[str, threading.Event] = {}
+_warm_lock = threading.Lock()
+_warm_on = False
+_save_timer = None
 ROUTE_TTL = 6 * 3600
 ROUTE_MISS_TTL = 15 * 60
+ROUTE_CACHE_MAX = 2000
+ROUTE_URL = "https://api.adsb.lol/api/0/route/{callsign}"
+ROUTE_FILE = Path(__file__).resolve().parent.parent / "data" / "routes.json"
+HOME = (39.90, 116.40)
+WARM_WORKERS = 16
+WARM_MAX = 900
 
 
-class _HostPool:
-    """复用到同一主机的连接，避免每次查航线都重新握手。"""
-
-    def __init__(self, host: str, size: int = 4):
-        self.host = host
-        self.size = size
-        self.idle: list[http.client.HTTPSConnection] = []
-        self.live = 0
-        self.cv = threading.Condition()
-
-    def acquire(self) -> http.client.HTTPSConnection:
-        with self.cv:
-            while True:
-                if self.idle:
-                    return self.idle.pop()
-                if self.live < self.size:
-                    self.live += 1
-                    break
-                self.cv.wait()
-        try:
-            return _connect_adsbdb()
-        except Exception:
-            with self.cv:
-                self.live = max(0, self.live - 1)
-                self.cv.notify()
-            raise
-
-    def release(self, conn: http.client.HTTPSConnection, reuse: bool) -> None:
-        if not reuse:
-            try:
-                conn.close()
-            except Exception:
-                pass
-        with self.cv:
-            if reuse:
-                self.idle.append(conn)
-            else:
-                self.live = max(0, self.live - 1)
-            self.cv.notify()
+def _route_key(callsign: str) -> str:
+    return "".join(ch for ch in str(callsign or "").upper() if ch.isalnum())[:8]
 
 
-_adsbdb_pool = _HostPool("api.adsbdb.com")
+def _empty_route(key: str) -> dict:
+    return {
+        "callsign": key,
+        "origin": "",
+        "destination": "",
+        "origin_lat": None,
+        "origin_lon": None,
+        "destination_lat": None,
+        "destination_lon": None,
+    }
 
 
-def _connect_adsbdb() -> http.client.HTTPSConnection:
-    """走系统代理。直连这条接口时证书过不了，和浏览器不是同一条路。"""
-    raw = urllib.request.getproxies().get("https") or ""
-    parsed = urlparse(raw) if raw else None
-    if parsed and parsed.hostname:
-        port = parsed.port or (443 if parsed.scheme == "https" else 80)
-        conn = http.client.HTTPSConnection(parsed.hostname, port, timeout=6)
-        conn.set_tunnel("api.adsbdb.com", 443)
-        return conn
-    return http.client.HTTPSConnection("api.adsbdb.com", timeout=6)
-
-
-def _place_name(node) -> str:
+def _airport_name(node) -> str:
     if not isinstance(node, dict):
         return ""
-    city = str(node.get("municipality") or "").strip()
-    if city:
-        return city.upper()
+    place = str(node.get("location") or "").strip()
+    if place:
+        return place.upper()
     name = str(node.get("name") or "").strip()
     if name:
         return name.upper()
-    code = str(node.get("iata_code") or node.get("icao_code") or "").strip()
+    code = str(node.get("iata") or node.get("icao") or "").strip()
     return code.upper()
 
 
-def _adsbdb_route(key: str) -> dict:
-    """查一条航线。连接断了就换一条再试一次。"""
-    last = None
-    for _ in range(2):
-        conn = _adsbdb_pool.acquire()
-        reuse = False
-        try:
-            conn.request(
-                "GET",
-                f"/v0/callsign/{key}",
-                headers={
-                    "User-Agent": "DeskOS/1.0",
-                    "Accept": "application/json",
-                    "Connection": "keep-alive",
-                },
-            )
-            resp = conn.getresponse()
+def _airport_coord(node, key: str):
+    if not isinstance(node, dict):
+        return None
+    value = _num(node.get(key))
+    if value is None:
+        return None
+    return round(value, 4)
+
+
+def _from_routeset_row(row) -> dict | None:
+    if not isinstance(row, dict):
+        return None
+    key = _route_key(row.get("callsign"))
+    if len(key) < 3:
+        return None
+    airports = row.get("_airports")
+    origin_node = airports[0] if isinstance(airports, list) and airports else None
+    dest_node = airports[-1] if isinstance(airports, list) and len(airports) >= 2 else None
+    origin = _airport_name(origin_node)
+    destination = _airport_name(dest_node)
+    if not origin or not destination or origin_node is dest_node:
+        return None
+    return {
+        "callsign": key,
+        "origin": origin,
+        "destination": destination,
+        "origin_lat": _airport_coord(origin_node, "lat"),
+        "origin_lon": _airport_coord(origin_node, "lon"),
+        "destination_lat": _airport_coord(dest_node, "lat"),
+        "destination_lon": _airport_coord(dest_node, "lon"),
+    }
+
+
+def _cache_fresh(hit, now: float) -> bool:
+    if not hit:
+        return False
+    ttl = ROUTE_TTL if hit[1].get("origin") else ROUTE_MISS_TTL
+    return now - hit[0] < ttl
+
+
+def _put_route(key: str, found: dict) -> None:
+    with _route_lock:
+        _route_cache[key] = (time.time(), dict(found))
+        if len(_route_cache) > ROUTE_CACHE_MAX:
+            oldest = sorted(_route_cache, key=lambda item: _route_cache[item][0])[:200]
+            for item in oldest:
+                _route_cache.pop(item, None)
+    _schedule_save()
+
+
+def _cached_route(callsign: str):
+    key = _route_key(callsign)
+    if len(key) < 3:
+        return None
+    now = time.time()
+    with _route_lock:
+        hit = _route_cache.get(key)
+        if _cache_fresh(hit, now):
+            return dict(hit[1])
+    return None
+
+
+def _load_route_cache() -> None:
+    try:
+        raw = json.loads(ROUTE_FILE.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    if not isinstance(raw, dict):
+        return
+    now = time.time()
+    loaded = 0
+    with _route_lock:
+        for key, row in raw.items():
+            if not isinstance(row, dict):
+                continue
+            stamp = _num(row.get("t"))
+            if stamp is None:
+                continue
+            found = _empty_route(_route_key(key))
+            found.update({
+                "callsign": _route_key(key),
+                "origin": str(row.get("origin") or "").strip(),
+                "destination": str(row.get("destination") or "").strip(),
+                "origin_lat": _num(row.get("origin_lat")),
+                "origin_lon": _num(row.get("origin_lon")),
+                "destination_lat": _num(row.get("destination_lat")),
+                "destination_lon": _num(row.get("destination_lon")),
+            })
+            hit = (stamp, found)
+            if _cache_fresh(hit, now):
+                _route_cache[found["callsign"]] = hit
+                loaded += 1
+                if loaded >= ROUTE_CACHE_MAX:
+                    break
+
+
+def _write_route_cache() -> None:
+    now = time.time()
+    with _route_lock:
+        rows = {}
+        for key, (stamp, found) in _route_cache.items():
+            if not _cache_fresh((stamp, found), now) or not found.get("origin"):
+                continue
+            rows[key] = {
+                "t": stamp,
+                "origin": found.get("origin") or "",
+                "destination": found.get("destination") or "",
+                "origin_lat": found.get("origin_lat"),
+                "origin_lon": found.get("origin_lon"),
+                "destination_lat": found.get("destination_lat"),
+                "destination_lon": found.get("destination_lon"),
+            }
+    try:
+        ROUTE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        tmp = ROUTE_FILE.with_suffix(".tmp")
+        tmp.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(ROUTE_FILE)
+    except Exception:
+        pass
+
+
+def _schedule_save() -> None:
+    global _save_timer
+    with _route_lock:
+        if _save_timer is not None:
+            _save_timer.cancel()
+        _save_timer = threading.Timer(2.0, _write_route_cache)
+        _save_timer.daemon = True
+        _save_timer.start()
+
+
+def _lol_route(key: str):
+    """查一条计划航线。404 表示没有，空着。其它错误往外抛，不写进缓存。"""
+    req = urllib.request.Request(
+        ROUTE_URL.format(callsign=key),
+        headers={"User-Agent": "DeskOS/1.0", "Accept": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
             raw = resp.read()
-            if resp.status == 404:
-                return {}
-            if resp.status != 200:
-                raise RuntimeError(f"adsbdb {resp.status}")
-            reuse = True
-            payload = json.loads(raw.decode("utf-8"))
-            if not isinstance(payload, dict):
-                return {}
-            return payload
-        except Exception as exc:
-            last = exc
-        finally:
-            _adsbdb_pool.release(conn, reuse)
-    if last:
-        raise last
-    return {}
+    except urllib.error.HTTPError as exc:
+        if exc.code in (400, 404):
+            return {}
+        raise
+    if not raw:
+        raise RuntimeError("route empty")
+    payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("route")
+    return payload
 
 
-def get_route(callsign: str) -> dict:
-    """按呼号查起飞、降落城市。查不到就空着，不让主页报错。"""
-    key = "".join(ch for ch in str(callsign or "").upper() if ch.isalnum())[:8]
-    empty = {"callsign": key, "origin": "", "destination": ""}
+def _looks_flight(callsign, icao24) -> bool:
+    key = _route_key(callsign)
+    if len(key) < 3:
+        return False
+    return key != str(icao24 or "").strip().upper()
+
+
+def _home_dist(plane: dict) -> float:
+    lat = _num(plane.get("lat")) or 0.0
+    lon = _num(plane.get("lon")) or 0.0
+    dy = lat - HOME[0]
+    dx = (lon - HOME[1]) * 0.7
+    return dx * dx + dy * dy
+
+
+def get_route(callsign: str, lat=None, lon=None) -> dict:
+    """按呼号查起飞、降落城市和坐标。查不到就空着，不让主页报错。"""
+    key = _route_key(callsign)
+    empty = _empty_route(key)
     if len(key) < 3:
         return empty
     now = time.time()
     with _route_lock:
         hit = _route_cache.get(key)
-        if hit and now - hit[0] < (ROUTE_TTL if hit[1].get("origin") else ROUTE_MISS_TTL):
+        if _cache_fresh(hit, now):
             return dict(hit[1])
         waited = _route_wait.get(key)
         if waited is None:
@@ -447,37 +554,68 @@ def get_route(callsign: str) -> dict:
         else:
             owner = False
     if not owner:
-        waited.wait(timeout=8)
-        with _route_lock:
-            hit = _route_cache.get(key)
-            if hit:
-                return dict(hit[1])
-        return dict(empty)
+        waited.wait(timeout=14)
+        cached = _cached_route(key)
+        return dict(cached) if cached else dict(empty)
     found = dict(empty)
     keep = False
     try:
-        payload = _adsbdb_route(key)
-        route = {}
-        response = payload.get("response") if isinstance(payload, dict) else None
-        if isinstance(response, dict) and isinstance(response.get("flightroute"), dict):
-            route = response["flightroute"]
-        origin = _place_name(route.get("origin"))
-        destination = _place_name(route.get("destination"))
-        if origin and destination:
-            found = {"callsign": key, "origin": origin, "destination": destination}
+        payload = _lol_route(key)
+        parsed = _from_routeset_row(payload)
+        found = dict(parsed) if parsed else dict(empty)
         keep = True
     except Exception:
         found = dict(empty)
+    if keep:
+        _put_route(key, found)
     with _route_lock:
-        if keep:
-            _route_cache[key] = (time.time(), dict(found))
-            if len(_route_cache) > 400:
-                oldest = sorted(_route_cache, key=lambda item: _route_cache[item][0])[:80]
-                for item in oldest:
-                    _route_cache.pop(item, None)
         _route_wait.pop(key, None)
     waited.set()
     return found
+
+
+def _warm_body(todo: list[dict]) -> None:
+    global _warm_on
+    try:
+        with ThreadPoolExecutor(max_workers=WARM_WORKERS) as pool:
+            list(pool.map(lambda item: get_route(item["callsign"]), todo))
+    finally:
+        with _warm_lock:
+            _warm_on = False
+        _schedule_save()
+
+
+def _schedule_warm(planes: list[dict]) -> None:
+    global _warm_on
+    now = time.time()
+    todo = []
+    seen = set()
+    ranked = sorted(
+        (plane for plane in planes if _looks_flight(plane.get("callsign"), plane.get("icao24"))),
+        key=_home_dist,
+    )
+    with _route_lock:
+        for plane in ranked:
+            key = _route_key(plane.get("callsign"))
+            if key in seen:
+                continue
+            hit = _route_cache.get(key)
+            if _cache_fresh(hit, now):
+                continue
+            seen.add(key)
+            todo.append({"callsign": key})
+            if len(todo) >= WARM_MAX:
+                break
+    if not todo:
+        return
+    with _warm_lock:
+        if _warm_on:
+            return
+        _warm_on = True
+    threading.Thread(target=_warm_body, args=(todo,), daemon=True).start()
+
+
+_load_route_cache()
 
 
 def get_flights() -> dict:

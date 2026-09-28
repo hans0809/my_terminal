@@ -27,8 +27,6 @@
     netDown: document.getElementById('net-down'),
     netUp: document.getElementById('net-up'),
     diskSummary: document.getElementById('disk-summary'),
-    pingHost: document.getElementById('ping-host'),
-    ping: document.getElementById('ping'),
     tmpRow: document.getElementById('tmp-row'),
     tmpSummary: document.getElementById('tmp-summary'),
     keySummary: document.getElementById('key-summary'),
@@ -290,11 +288,6 @@
     }
 
     renderDiskSummary(data.disks);
-
-    if (data.ping) {
-      els.pingHost.textContent = data.ping.host || '--';
-      els.ping.textContent = data.ping.available ? data.ping.label : 'N/A';
-    }
 
     if (data.uptime) {
       els.uptime.textContent = formatUptime(data.uptime.label);
