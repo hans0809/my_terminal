@@ -51,9 +51,11 @@
   const yearRoot = document.querySelector('.terminal__year');
 
   let timer = 0;
+  let holdTimer = 0;
   let dayShown = '';
   let selectedStamp = 0;
   const termCache = new Map();
+  const HOLD_MS = 60 * 1000;
 
   function ymd(date) {
     return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
@@ -246,10 +248,27 @@
     });
   }
 
+  function clearHold() {
+    if (holdTimer) {
+      window.clearTimeout(holdTimer);
+      holdTimer = 0;
+    }
+  }
+
+  function armHold() {
+    clearHold();
+    holdTimer = window.setTimeout(() => {
+      holdTimer = 0;
+      if (dayShown && selectedStamp !== dayShown) selectDay(dayShown);
+    }, HOLD_MS);
+  }
+
   function selectDay(stamp) {
     selectedStamp = stamp;
     applySelected();
     showTerm(stamp);
+    if (stamp === dayShown) clearHold();
+    else armHold();
   }
 
   function paintDay(now) {
