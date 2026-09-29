@@ -135,4 +135,6 @@
     },
     onLeave() {},
   };
+
+  if (window.DeskApps) window.DeskApps.register('log', window.DeskLog);
 })();

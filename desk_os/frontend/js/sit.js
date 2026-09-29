@@ -452,12 +452,12 @@
     ack();
   }, true);
 
-  if (window.DeskApps && typeof window.DeskApps.onEnter === 'function') {
-    const enter = window.DeskApps.onEnter.bind(window.DeskApps);
-    window.DeskApps.onEnter = (id) => {
-      enter(id);
-      if (id === 'sit') fillForm();
-    };
+  if (window.DeskApps) {
+    window.DeskApps.register('sit', {
+      onEnter() {
+        fillForm();
+      },
+    });
   }
 
   fillForm();

@@ -768,4 +768,6 @@
       return false;
     },
   };
+
+  if (window.DeskApps) window.DeskApps.register('flow', window.FlowApp);
 })();
