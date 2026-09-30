@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=83">
+  <link rel="stylesheet" href="/css/style.css?v=101">
   <link rel="stylesheet" href="/css/flow.css?v=16">
   <link rel="stylesheet" href="/css/year.css?v=20">
   <link rel="stylesheet" href="/css/flight.css?v=13">
@@ -164,6 +164,30 @@
                   <ol id="sys-log-top" class="log-top" hidden aria-label="frequent apps"></ol>
                 </section>
 
+                <section id="desk-npc" class="desk-npc" aria-label="desk npc">
+                  <header class="desk-npc__head">
+                    <span id="npc-face" class="desk-npc__face" aria-hidden="true"></span>
+                    <span class="desk-npc__title">DESK NPC</span>
+                    <span id="npc-state" class="desk-npc__state">IDLE</span>
+                  </header>
+                  <ol id="npc-lines" class="desk-npc__lines"></ol>
+                  <form id="npc-talk" class="desk-npc__talk" autocomplete="off">
+                    <label class="desk-npc__composer" for="npc-talk-input">
+                      <span class="desk-npc__mark" aria-hidden="true">&gt;</span>
+                      <input id="npc-talk-input" maxlength="200" spellcheck="false" aria-label="对 NPC 说">
+                    </label>
+                  </form>
+                </section>
+
+                <section id="desk-slip" class="desk-slip" aria-label="一言">
+                  <blockquote class="desk-slip__quote">
+                    <p id="slip-line" class="desk-slip__line"></p>
+                    <footer id="slip-from" class="desk-slip__from" hidden>
+                      <cite id="slip-kind"></cite>
+                    </footer>
+                  </blockquote>
+                </section>
+
                 <section class="terminal__year" aria-label="year">
                   <p class="year-meta">
                     <span id="year-pct">--%</span>
@@ -232,6 +256,20 @@
                   </svg>
                 </span>
                 <span class="app-name">LOG</span>
+              </button>
+              <button class="app-tile" type="button" data-app="npc">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
+                    <rect x="6" y="6" width="20" height="2"/>
+                    <rect x="6" y="24" width="20" height="2"/>
+                    <rect x="6" y="8" width="2" height="16"/>
+                    <rect x="24" y="8" width="2" height="16"/>
+                    <rect x="11" y="13" width="3" height="3"/>
+                    <rect x="18" y="13" width="3" height="3"/>
+                    <rect x="12" y="19" width="8" height="2"/>
+                  </svg>
+                </span>
+                <span class="app-name">NPC</span>
               </button>
             </div>
           </div>
@@ -417,6 +455,112 @@
               <p class="app-page__title">LOG</p>
               <div id="log-rows" class="log-rows"></div>
             </section>
+            <section id="app-npc" class="app-page">
+              <p class="app-page__title">NPC</p>
+              <div class="npc-chat">
+                <div class="npc-log__bar">
+                  <button id="npc-new" class="task-drop" type="button">NEW</button>
+                  <button id="npc-clear" class="task-drop" type="button">CLEAR</button>
+                </div>
+                <div id="npc-sessions" class="npc-sessions"></div>
+                <form id="npc-chat-form" class="npc-chat__form" autocomplete="off">
+                  <span class="desk-npc__mark" aria-hidden="true">&gt;</span>
+                  <input id="npc-chat-input" maxlength="200" spellcheck="false" aria-label="对 NPC 说">
+                </form>
+              </div>
+              <div class="sit-set">
+                <div class="sit-row">
+                  <span class="sit-k">LIVE</span>
+                  <span class="sit-ctrl">
+                    <button id="npc-enabled" class="sit-step npc-switch" type="button" aria-pressed="true">ON</button>
+                    <span id="npc-calls" class="sit-hint">TODAY --</span>
+                  </span>
+                </div>
+                <label class="sit-block" for="npc-base">
+                  <span class="sit-k">BASE</span>
+                  <input id="npc-base" class="sit-field" maxlength="300" spellcheck="false" autocomplete="off">
+                </label>
+                <label class="sit-block" for="npc-key">
+                  <span class="sit-k">KEY</span>
+                  <input id="npc-key" class="sit-field npc-key" maxlength="400" spellcheck="false" autocomplete="off">
+                </label>
+                <label class="sit-block" for="npc-model">
+                  <span class="sit-k">MODEL</span>
+                  <input id="npc-model" class="sit-field" maxlength="80" spellcheck="false" autocomplete="off">
+                </label>
+                <div class="sit-row">
+                  <span class="sit-k">WAIT</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-npc-step="cooldown" data-dir="-1" aria-label="缩短冷却">−</button>
+                    <input id="npc-cooldown" class="sit-field sit-field--num" inputmode="numeric" maxlength="3" spellcheck="false" autocomplete="off" aria-label="冷却分钟">
+                    <span class="sit-unit">MIN</span>
+                    <button class="sit-step" type="button" data-npc-step="cooldown" data-dir="1" aria-label="延长冷却">+</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">RETRY</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-npc-step="retry" data-dir="-1" aria-label="减少重试">−</button>
+                    <input id="npc-retry" class="sit-field sit-field--num" inputmode="numeric" maxlength="1" spellcheck="false" autocomplete="off" aria-label="重试次数">
+                    <span class="sit-unit">TRY</span>
+                    <button class="sit-step" type="button" data-npc-step="retry" data-dir="1" aria-label="增加重试">+</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">DAY</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-npc-step="cap" data-dir="-1" aria-label="减少每日次数">−</button>
+                    <input id="npc-cap" class="sit-field sit-field--num" inputmode="numeric" maxlength="3" spellcheck="false" autocomplete="off" aria-label="每日上限">
+                    <span class="sit-unit">CALL</span>
+                    <button class="sit-step" type="button" data-npc-step="cap" data-dir="1" aria-label="增加每日次数">+</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">SLIP</span>
+                  <span class="sit-ctrl">
+                    <button id="slip-enabled" class="sit-step npc-switch" type="button" aria-pressed="true">ON</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">EVERY</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-npc-step="slip" data-dir="-1" aria-label="缩短间隔">−</button>
+                    <input id="slip-min" class="sit-field sit-field--num" inputmode="numeric" maxlength="3" spellcheck="false" autocomplete="off" aria-label="间隔分钟">
+                    <span class="sit-unit">MIN</span>
+                    <button class="sit-step" type="button" data-npc-step="slip" data-dir="1" aria-label="延长间隔">+</button>
+                  </span>
+                </div>
+                <section class="kind-set">
+                  <div class="sit-row">
+                    <span class="sit-k">KIND</span>
+                    <form id="slip-kind-form" class="kind-add" autocomplete="off">
+                      <input id="slip-kind-input" class="sit-field" maxlength="16" spellcheck="false" autocomplete="off" placeholder="新类型" aria-label="新类型">
+                      <button id="slip-kind-add" class="task-drop" type="submit">ADD</button>
+                    </form>
+                  </div>
+                  <div id="slip-kinds" class="kind-list"></div>
+                  <p id="slip-kind-note" class="sit-hint kind-note" hidden></p>
+                </section>
+                <div class="sit-row">
+                  <span class="sit-k">HEAR</span>
+                  <span class="sit-ctrl npc-ranks" id="npc-ranks">
+                    <button class="sit-step" type="button" data-rank="2">2</button>
+                    <button class="sit-step" type="button" data-rank="3">3</button>
+                    <button class="sit-step" type="button" data-rank="4">4</button>
+                    <span class="sit-hint">以上才开口</span>
+                  </span>
+                </div>
+                <div class="task-foot">
+                  <button id="npc-ping" class="task-drop" type="button">CHECK</button>
+                  <button id="npc-save" class="task-drop" type="button">SAVE</button>
+                </div>
+                <p id="npc-link" class="sit-hint npc-link">—</p>
+                <div class="slip-tools">
+                  <button id="slip-next" class="task-drop" type="button">NEXT</button>
+                </div>
+                <ol id="slip-log" class="slip-log"></ol>
+              </div>
+            </section>
             <section id="app-flight" class="app-page" data-layer="all">
               <p class="app-page__title">FLIGHT</p>
               <div class="flight-page__meta" data-map-goto="flight">
@@ -476,7 +620,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=16"></script>
+  <script src="/js/app.js?v=18"></script>
   <script src="/js/desk.js?v=20"></script>
   <script src="/js/task.js?v=1"></script>
   <script src="/js/year.js?v=6"></script>
@@ -487,6 +631,7 @@
   <script src="/js/flight.js?v=21"></script>
   <script src="/js/world-map.js?v=4"></script>
   <script src="/js/earthquake.js?v=4"></script>
-  <script src="/js/pixel-dog.js?v=26"></script>
+  <script src="/js/pixel-dog.js?v=28"></script>
+  <script src="/js/npc.js?v=22"></script>
 </body>
 </html>

@@ -8,9 +8,9 @@ import re
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+from backend.paths import DATA_DIR
+
 LOG_FILE = DATA_DIR / "log.json"
 APPS_FILE = DATA_DIR / "apps.json"
 MAX_LINES = 180

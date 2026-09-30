@@ -12,7 +12,8 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
-from pathlib import Path
+
+from backend.paths import DATA_DIR
 
 FETCH_TIMEOUT = 8
 OPENSKY_URL = "https://opensky-network.org/api/states/all"
@@ -333,7 +334,7 @@ ROUTE_TTL = 6 * 3600
 ROUTE_MISS_TTL = 15 * 60
 ROUTE_CACHE_MAX = 2000
 ROUTE_URL = "https://api.adsb.lol/api/0/route/{callsign}"
-ROUTE_FILE = Path(__file__).resolve().parent.parent / "data" / "routes.json"
+ROUTE_FILE = DATA_DIR / "routes.json"
 HOME = (39.90, 116.40)
 WARM_WORKERS = 16
 WARM_MAX = 900

@@ -7,14 +7,13 @@ import threading
 import time
 import re
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
 from backend.logbook import note_flow
+from backend.paths import DATA_DIR
 from backend.rss_parser import TITLE_LIMIT, URL_LIMIT, _iso_from_text, parse_feed_bytes
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 DB_PATH = DATA_DIR / "flow.db"
 USER_AGENT = "DeskOS-FLOW/1.0 (+local)"
 FETCH_TIMEOUT = 18.0

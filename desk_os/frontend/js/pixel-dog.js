@@ -1111,6 +1111,8 @@
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' || e.key === 'F11') return;
+    const typing = e.target && e.target.closest && e.target.closest('input, textarea');
+    if (typing) return;
     poke();
   });
 
@@ -1139,8 +1141,7 @@
   if (crtScreen) {
     crtScreen.addEventListener('click', (e) => {
       if (document.body.dataset.layer && document.body.dataset.layer !== 'status') return;
-      if (e.target.closest && e.target.closest('#flight-home')) return;
-      if (e.target.closest && e.target.closest('.terminal__year')) return;
+      if (e.target.closest && e.target.closest('#flight-home, .terminal__year, #desk-npc, #desk-slip, input, textarea')) return;
       if (treatBusy || treat) return;
       dropTreat(e.clientX, e.clientY);
     });

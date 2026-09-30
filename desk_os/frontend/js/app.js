@@ -66,6 +66,10 @@
     if (logRule) nodes.push(logRule);
     const log = root.querySelector('.terminal__log');
     if (log) nodes.push(log);
+    const npc = root.querySelector('#desk-npc');
+    if (npc) nodes.push(npc);
+    const slip = root.querySelector('#desk-slip');
+    if (slip) nodes.push(slip);
     const year = root.querySelector('.terminal__year');
     if (year) nodes.push(year);
     return nodes.filter((el) => !el.classList.contains('is-hidden'));
@@ -134,6 +138,9 @@
       if (next === 'app' && openAppId) {
         window.DeskApps.onEnter(openAppId);
       }
+    }
+    if (window.DeskNpc && typeof window.DeskNpc.noteView === 'function') {
+      window.DeskNpc.noteView(next, openAppId);
     }
   }
 

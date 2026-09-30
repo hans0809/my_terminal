@@ -1015,6 +1015,8 @@ body[data-mode="windowed"] .terminal__info {
 .crt.is-booting .terminal__rule,
 .crt.is-booting .info-row,
 .crt.is-booting .terminal__log,
+.crt.is-booting .desk-npc,
+.crt.is-booting .desk-slip,
 .crt.is-booting .flight {
   opacity: 0;
 }
@@ -1151,6 +1153,507 @@ body[data-mode="windowed"] .terminal__info {
 
 .terminal__log:has(.log-stream:empty) {
   display: none;
+}
+
+.desk-slip {
+  grid-area: slip;
+  justify-self: stretch;
+  width: 100%;
+  min-width: 0;
+  height: 168px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: none;
+  border-top: 1px solid var(--line);
+  padding: 14px 0 0;
+  color: var(--fg);
+}
+
+.desk-slip__quote {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.85em;
+  overflow: auto;
+  scrollbar-width: none;
+  padding: 2px 2px 6px 0.2em;
+}
+
+.desk-slip__quote::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.desk-slip__line {
+  margin: 0;
+  color: var(--fg);
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: clamp(20px, 2.6vmin, 28px);
+  font-weight: 500;
+  line-height: 1.75;
+  letter-spacing: 0.04em;
+  text-wrap: pretty;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text !important;
+}
+
+.desk-slip__from {
+  align-self: flex-end;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+  margin: 0;
+  color: var(--fg-dim);
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+}
+
+.desk-slip__from::before {
+  content: "——";
+  letter-spacing: 0.08em;
+  color: var(--fg-time);
+}
+
+.desk-slip__from cite {
+  font-style: normal;
+}
+
+.desk-npc {
+  grid-area: npc;
+  justify-self: stretch;
+  width: 100%;
+  min-width: 0;
+  height: 168px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: none;
+  border-top: 1px solid var(--line);
+  padding: 14px 0 0;
+  color: var(--fg);
+}
+
+.desk-npc__head {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.7em;
+  color: var(--fg-dim);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+
+.desk-npc__face {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  color: var(--fg-time);
+}
+
+.desk-npc__face svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.desk-npc__state {
+  letter-spacing: 0.12em;
+  transition: color 0.35s ease;
+}
+
+.desk-npc.is-alert .desk-npc__state {
+  color: var(--fg-time);
+}
+
+.desk-npc__lines {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 2px 0 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  font-size: clamp(18px, 2.3vmin, 24px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scroll-behavior: smooth;
+}
+
+.desk-npc__lines::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.desk-npc__lines li {
+  display: grid;
+  grid-template-columns: 2.6em 4.6ch minmax(0, 1fr);
+  column-gap: 0.85em;
+  align-items: baseline;
+  width: 100%;
+  margin: 0;
+  font-size: 1em;
+}
+
+.desk-npc__lines .desk-npc__face {
+  width: 1.15em;
+  height: 1.15em;
+  justify-self: start;
+}
+
+.desk-npc__who {
+  font-family: var(--font);
+  font-size: 0.58em;
+  letter-spacing: 0.16em;
+  color: var(--fg-dim);
+  line-height: 1;
+}
+
+.desk-npc__talk {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  flex: none;
+  margin: auto 0 0;
+  padding-top: 12px;
+  font-size: clamp(18px, 2.3vmin, 24px);
+}
+
+.desk-npc__composer {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  column-gap: 0.85em;
+  align-items: center;
+  width: 100%;
+  cursor: text !important;
+}
+
+.desk-npc__time,
+.desk-npc__mark {
+  font-family: var(--font);
+  font-size: 0.72em;
+  letter-spacing: 0.12em;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.desk-npc__say,
+.desk-npc__talk input {
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--fg-time);
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: 1em;
+  font-weight: 500;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  outline: none;
+  caret-color: var(--fg-time);
+}
+
+.desk-npc__say {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.desk-npc__lines .is-user .desk-npc__say {
+  color: var(--fg);
+  font-weight: 400;
+}
+
+.desk-npc__talk input {
+  width: 100%;
+  min-width: 0;
+  min-height: 1.6em;
+  padding: 2px 0 4px;
+  color: var(--fg);
+  font-weight: 400;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text !important;
+  pointer-events: auto;
+}
+
+.desk-npc__dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  height: 1.55em;
+}
+
+.desk-npc__dots i {
+  width: 0.28em;
+  height: 0.28em;
+  background: var(--fg-time);
+  opacity: 0.25;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .desk-npc__lines li.is-new,
+  .desk-slip__line.is-new {
+    animation: npc-in 0.45s ease both;
+  }
+
+  .desk-npc__dots i {
+    animation: npc-type 1.1s steps(2, end) infinite;
+  }
+
+  .desk-npc__dots i:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+
+  .desk-npc__dots i:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+}
+
+@keyframes npc-type {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+@keyframes npc-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.npc-chat__form {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.npc-chat__form input {
+  flex: 1;
+  min-width: 8em;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--fg);
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: clamp(16px, 2.2vmin, 22px);
+  line-height: 1.4;
+  outline: none;
+  caret-color: var(--fg-time);
+  text-align: left;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.npc-chat {
+  margin-bottom: 18px;
+}
+
+.npc-log__bar {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 4px;
+}
+
+.npc-sessions {
+  max-height: 36vh;
+  overflow: auto;
+}
+
+.npc-rec {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0 12px;
+}
+
+.npc-rec__head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.npc-rec__open {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 11ch minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  color: var(--fg);
+  font-family: var(--font);
+  cursor: pointer;
+  align-items: start;
+}
+
+.npc-rec__time {
+  color: var(--fg-dim);
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  font-size: calc(clamp(13px, 1.8vmin, 16px) * var(--type-scale, 1));
+}
+
+.npc-rec__preview {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: calc(clamp(16px, 2.2vmin, 22px) * var(--type-scale, 1));
+  color: var(--fg-time);
+}
+
+.npc-rec.is-on .npc-rec__time {
+  color: var(--fg-time);
+}
+
+.npc-rec__del {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-dim);
+  font-family: var(--font);
+  letter-spacing: 0.14em;
+  font-size: calc(clamp(13px, 1.8vmin, 16px) * var(--type-scale, 1));
+  cursor: pointer;
+}
+
+.npc-rec__body {
+  display: none;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.npc-rec.is-open .npc-rec__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.npc-rec__body li {
+  display: grid;
+  grid-template-columns: 2.6em minmax(0, 1fr);
+  column-gap: 0.75em;
+  align-items: baseline;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: calc(clamp(16px, 2.2vmin, 22px) * var(--type-scale, 1));
+  line-height: 1.45;
+  color: var(--fg-time);
+  text-align: left;
+}
+
+.npc-rec__body .is-user {
+  margin-left: 0;
+  color: var(--fg);
+}
+
+.npc-rec__body .is-user .desk-npc__say {
+  text-align: left;
+  color: var(--fg);
+}
+
+.npc-rec__body .desk-npc__face {
+  width: 1.15em;
+  height: 1.15em;
+  margin-top: 0;
+}
+
+.npc-key {
+  font-size: 0.72em;
+  letter-spacing: 0;
+}
+
+.npc-ranks .sit-step {
+  min-width: 1.4em;
+}
+
+.npc-ranks .sit-step.is-on {
+  color: var(--fg-time);
+}
+
+.npc-link {
+  min-height: 1.4em;
+  padding-top: 10px;
+}
+
+.npc-link.is-ok {
+  color: var(--fg-time);
+}
+
+.slip-kinds .sit-step {
+  min-width: 3.2em;
+}
+
+.slip-kinds .sit-step.is-on {
+  color: var(--fg-time);
+}
+
+.slip-tools {
+  padding-top: 8px;
+}
+
+.slip-log {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  max-height: 18em;
+  overflow: auto;
+}
+
+.slip-log li {
+  display: grid;
+  grid-template-columns: 4.6ch 4.6ch minmax(0, 1fr) auto;
+  column-gap: 0.8em;
+  align-items: baseline;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 15px;
+}
+
+.slip-log__kind {
+  color: var(--fg-time);
+  letter-spacing: 0.08em;
+}
+
+.slip-log__time {
+  color: var(--fg-dim);
+}
+
+.slip-log__text {
+  min-width: 0;
+  color: var(--fg);
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  line-height: 1.45;
+}
+
+.slip-log__del {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--fg-dim);
+  font: inherit;
+  letter-spacing: 0.12em;
+  cursor: pointer;
 }
 
 .log-stream {
@@ -1459,6 +1962,94 @@ body[data-mode="windowed"] .terminal__info {
   outline: none;
   caret-color: var(--fg-time);
   user-select: text;
+}
+
+.kind-set {
+  border-bottom: 1px solid var(--line);
+}
+
+.kind-set .sit-row {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.kind-add {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  min-width: 0;
+}
+
+.kind-add .sit-field {
+  flex: 1;
+}
+
+.kind-list {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 8px;
+}
+
+.kind-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.kind-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.kind-name {
+  font-family: var(--font);
+  letter-spacing: 0.16em;
+  color: var(--fg-time);
+  font-size: calc(clamp(14px, 1.8vmin, 18px) * var(--type-scale, 1));
+}
+
+.kind-card button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-dim);
+  font-family: var(--font);
+  letter-spacing: 0.14em;
+  font-size: calc(clamp(13px, 1.8vmin, 16px) * var(--type-scale, 1));
+  cursor: pointer;
+}
+
+.kind-card button:disabled {
+  opacity: 0.35;
+}
+
+.kind-prompt {
+  width: 100%;
+  min-height: 4.6em;
+  resize: vertical;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--fg);
+  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-size: calc(clamp(15px, 2vmin, 18px) * var(--type-scale, 1));
+  line-height: 1.55;
+  outline: none;
+  caret-color: var(--fg-time);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+#view-dashboard .kind-prompt,
+#view-dashboard #slip-kind-input {
+  cursor: text !important;
+}
+
+.kind-note {
+  margin: 0 0 12px;
 }
 
 .sit-field--num {
@@ -1972,7 +2563,8 @@ body[data-mode="windowed"] .terminal__info {
       "maprule maprule"
       "dock dock"
       "logrule logrule"
-      "log log";
+      "log log"
+      "npc slip";
     column-gap: var(--desk-gutter);
     row-gap: 18px;
     padding: 0;
@@ -2309,6 +2901,44 @@ body[data-mode="windowed"] .terminal__info {
   .sit-block {
     padding: 22px 0 20px;
     column-gap: 36px;
+  }
+
+  .desk-npc,
+  .desk-slip {
+    height: 200px;
+    padding-top: 18px;
+  }
+
+  .desk-npc {
+    width: 100%;
+  }
+
+  .desk-npc__head {
+    font-size: 22px;
+  }
+
+  .desk-npc__head .desk-npc__face {
+    width: 22px;
+    height: 22px;
+  }
+
+  .desk-npc__lines {
+    font-size: 26px;
+    gap: 12px;
+  }
+
+  .desk-npc__talk {
+    font-size: 26px;
+  }
+
+  .desk-slip__line {
+    font-size: 30px;
+    line-height: 1.7;
+    letter-spacing: 0.06em;
+  }
+
+  .desk-slip__from {
+    font-size: 15px;
   }
 
   .task-row {
