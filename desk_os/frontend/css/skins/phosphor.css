@@ -1,0 +1,75 @@
+/* 磷光 — 暗玻璃上的 P1 绿。字是光，空的地方是管子。 */
+
+html[data-skin="phosphor"] {
+  --bezel: #0c100e;
+  --screen: #07140e;
+  --fg-time: #d4f8c6;
+  --fg: #8ed888;
+  --fg-mid: #4f9a4a;
+  --fg-dim: #2f6b38;
+  --fg-bar: #d4f8c6;
+  --fg-bar-empty: #163222;
+  --line: #1a4630;
+  --dog-ink: #7dcc6e;
+  --dog-faint: #3a7840;
+  --dog-deep: #e4ffd8;
+  --font: "Lucida Console", "Sarasa Mono SC", Consolas, "Courier New", monospace;
+  --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
+  --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
+}
+
+html[data-skin="phosphor"],
+html[data-skin="phosphor"] body {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
+
+html[data-skin="phosphor"] .crt.is-on {
+  text-shadow: 0 0 1px rgba(180, 255, 160, 0.55);
+}
+
+html[data-skin="phosphor"] {
+  --ink: #e4ffd8;
+  --paper: #e8ffe0;
+  --ink-dim: #5aaa52;
+  --screen-edge: #1e5a32;
+  --screen-inset: rgba(160, 255, 140, 0.14);
+  --off-screen: #050806;
+  --off-edge: #101412;
+  --off-inset: rgba(0, 0, 0, 0.55);
+  --key-fg: #6dba62;
+  --key-bg: #141a16;
+  --key-edge: #2c4a34;
+  --key-hi: #1e2c22;
+  --key-fg-hot: #e4ffd8;
+  --key-edge-hot: #4a8a44;
+  --key-bg-down: #0a100c;
+  --key-shade: rgba(0, 0, 0, 0.55);
+  --key-on-fg: #e4ffd8;
+  --key-on-bg: #163018;
+  --key-on-shade: rgba(0, 30, 0, 0.5);
+  --home-bg: #121816;
+  --home-edge: #3a5a40;
+  --home-hi: #1c2820;
+  --home-mark: #6aaa60;
+  --home-bg-down: #0a0e0c;
+  --icon-hi: rgba(220, 255, 200, 0.28);
+  --fault-scan: rgba(160, 255, 140, 0.16);
+  --land: #1c6a38;
+  --map-line: #9ee08a;
+  --year-weekend: #10281a;
+  --year-bar: #1e4630;
+  --grain: linear-gradient(to bottom, transparent 0, transparent calc(100% - var(--scan-line)), rgba(170, 255, 150, 0.34) calc(100% - var(--scan-line)), rgba(170, 255, 150, 0.34) 100%);
+  --grain-opacity: 0.28;
+  --grain-blend: screen;
+  --grain-size: 100% var(--scan-pitch);
+  --speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.9 0 0 0 0 0.4 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --speck-opacity: 0.16;
+  --speck-blend: screen;
+  --speck-size: 80px 80px;
+  --flash-0: #030806;
+  --flash-1: #d8ffc8;
+  --flash-2: #1a4a24;
+  --flash-3: var(--screen);
+}

@@ -1,0 +1,70 @@
+/* 稿纸 — 暖纸、墨、木壳。字是印上去的，不是亮着的。 */
+
+html[data-skin="paper"] {
+  --bezel: #2a2118;
+  --screen: #f3ecdf;
+  --fg-time: #24180f;
+  --fg: #3c2c22;
+  --fg-mid: #6e5644;
+  --fg-dim: #8f7562;
+  --fg-bar: #2a1c12;
+  --fg-bar-empty: #d2c4b0;
+  --line: #d5c6b2;
+  --dog-ink: #6a5344;
+  --dog-faint: #b5a08c;
+  --dog-deep: #2a1c12;
+  --font: "Source Serif 4", "Noto Serif SC", "Songti SC", Palatino, serif;
+  --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
+  --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
+}
+
+html[data-skin="paper"],
+html[data-skin="paper"] body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-skin="paper"] {
+  --ink: #24180f;
+  --paper: #faf6ee;
+  --ink-dim: #a08872;
+  --screen-edge: #6e5644;
+  --screen-inset: rgba(80, 52, 28, 0.14);
+  --off-screen: #1c1612;
+  --off-edge: #3a2e24;
+  --off-inset: rgba(0, 0, 0, 0.4);
+  --key-fg: #e6d8c6;
+  --key-bg: #3a2e24;
+  --key-edge: #8a7058;
+  --key-hi: #4e3e30;
+  --key-fg-hot: #faf6ee;
+  --key-edge-hot: #c4a888;
+  --key-bg-down: #241c16;
+  --key-shade: rgba(40, 24, 10, 0.45);
+  --key-on-fg: #faf6ee;
+  --key-on-bg: #2a1c12;
+  --key-on-shade: rgba(40, 24, 10, 0.4);
+  --home-bg: #34281e;
+  --home-edge: #8a7058;
+  --home-hi: #4a3c30;
+  --home-mark: #d4c4ae;
+  --home-bg-down: #1e1814;
+  --icon-hi: rgba(255, 244, 220, 0.22);
+  --fault-scan: rgba(36, 24, 15, 0.16);
+  --land: #cbb89a;
+  --map-line: #6a5344;
+  --year-weekend: #e4d8c6;
+  --year-bar: #c4b09a;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.38;
+  --grain-blend: multiply;
+  --grain-size: 280px 280px;
+  --speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.28 0 0 0 0 0.14 0 0 0 0.45 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --speck-opacity: 0.22;
+  --speck-blend: multiply;
+  --speck-size: 180px 180px;
+  --flash-0: #24180f;
+  --flash-1: #faf6ee;
+  --flash-2: #c4b09a;
+  --flash-3: var(--screen);
+}

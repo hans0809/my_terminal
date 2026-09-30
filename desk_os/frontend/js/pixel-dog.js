@@ -1,6 +1,6 @@
 /**
  * Desk OS — 像素小狗（电子宠物）
- * 精灵基于 Kipperfalcon「Cute Doggy 16x16」(CC-BY 4.0)，镜像 · 墨水四阶灰
+ * 精灵基于 Kipperfalcon「Cute Doggy 16x16」(CC-BY 4.0)，镜像 · 墨色跟皮肤
  *
  * 睡 / 昏 / 醒 / 打字 / 兴奋
  * 按键积精力，太久没键或凌晨入睡
@@ -52,11 +52,24 @@
   const CHIP_HOT = 68;
   const QUOTA_WARN = 80;
 
-  const INK = [
-    [28, 27, 23],
-    [74, 73, 68],
-    [154, 150, 140],
-  ];
+  function parseHex(raw, fallback) {
+    const m = String(raw || '').trim().match(/^#([0-9a-f]{6})$/i);
+    if (!m) return fallback;
+    const h = m[1];
+    return [
+      parseInt(h.slice(0, 2), 16),
+      parseInt(h.slice(2, 4), 16),
+      parseInt(h.slice(4, 6), 16),
+    ];
+  }
+
+  function inkTones() {
+    const cs = getComputedStyle(document.documentElement);
+    const deep = parseHex(cs.getPropertyValue('--dog-deep'), [27, 28, 25]);
+    const ink = parseHex(cs.getPropertyValue('--dog-ink'), [72, 74, 69]);
+    const faint = parseHex(cs.getPropertyValue('--dog-faint'), [152, 154, 147]);
+    return { deep, ink, faint };
+  }
 
   const BONE_STAGES = [
     [
@@ -105,11 +118,6 @@
       '  11  ',
     ],
   ];
-  const BONE_TONE = {
-    1: [28, 27, 23],
-    2: [74, 73, 68],
-    3: [154, 150, 140],
-  };
   const BONE_SCALE = 3;
   const TREAT_GRID = 4;
   const TREAT_SPEED = 0.26;
@@ -120,6 +128,8 @@
 
   const awakeImgs = [];
   const sleepImgs = [];
+  const awakeRaw = [];
+  const sleepRaw = [];
   let loaded = 0;
   const totalFrames = AWAKE.length + SLEEP.length;
 
@@ -132,13 +142,14 @@
     sctx.drawImage(img, 0, 0, sheet.width, sheet.height);
     const imageData = sctx.getImageData(0, 0, sheet.width, sheet.height);
     const d = imageData.data;
+    const tone = inkTones();
     for (let i = 0; i < d.length; i += 4) {
       if (d[i + 3] < 18) {
         d[i + 3] = 0;
         continue;
       }
       const y = d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722;
-      const c = y < 92 ? INK[0] : y < 168 ? INK[1] : INK[2];
+      const c = y < 92 ? tone.deep : y < 168 ? tone.ink : tone.faint;
       d[i] = c[0];
       d[i + 1] = c[1];
       d[i + 2] = c[2];
@@ -186,10 +197,11 @@
   let wanderTarget = 0;
   let nextWanderAt = performance.now() + 8000 + Math.random() * 6000;
 
-  function loadSheet(list, bucket) {
+  function loadSheet(list, bucket, raw) {
     list.forEach((src, i) => {
       const img = new Image();
       img.onload = () => {
+        raw[i] = img;
         bucket[i] = posterizeToInk(img);
         loaded += 1;
         if (loaded === totalFrames) render();
@@ -197,8 +209,8 @@
       img.src = src;
     });
   }
-  loadSheet(AWAKE, awakeImgs);
-  loadSheet(SLEEP, sleepImgs);
+  loadSheet(AWAKE, awakeImgs, awakeRaw);
+  loadSheet(SLEEP, sleepImgs, sleepRaw);
 
   function snap(v, g) {
     return Math.round(v / g) * g;
@@ -217,15 +229,17 @@
     const sctx = src.getContext('2d');
     const pix = sctx.createImageData(bw, bh);
     const d = pix.data;
+    const tone = inkTones();
+    const bone = { 1: tone.deep, 2: tone.ink, 3: tone.faint };
     for (let y = 0; y < bh; y += 1) {
       const row = map[y];
       for (let x = 0; x < bw; x += 1) {
-        const tone = BONE_TONE[row[x]];
-        if (!tone) continue;
+        const ink = bone[row[x]];
+        if (!ink) continue;
         const i = (y * bw + x) * 4;
-        d[i] = tone[0];
-        d[i + 1] = tone[1];
-        d[i + 2] = tone[2];
+        d[i] = ink[0];
+        d[i + 1] = ink[1];
+        d[i + 2] = ink[2];
         d[i + 3] = 255;
       }
     }
@@ -866,6 +880,19 @@
     }
     drawImg(awakeFrame());
   }
+
+  function retint() {
+    awakeRaw.forEach((img, i) => {
+      if (img) awakeImgs[i] = posterizeToInk(img);
+    });
+    sleepRaw.forEach((img, i) => {
+      if (img) sleepImgs[i] = posterizeToInk(img);
+    });
+    if (boneStage >= 0) paintBone(boneStage);
+    if (loaded === totalFrames) render();
+  }
+
+  document.addEventListener('desk-skin', retint);
 
   function wake(t) {
     if (pose === 'sleep') stretchUntil = t + STRETCH_MS;

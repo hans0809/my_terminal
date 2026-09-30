@@ -1,0 +1,75 @@
+/* 琥珀 — 深褐黑管子上的暖光。字是黄的，壳是橄榄金属。 */
+
+html[data-skin="amber"] {
+  --bezel: #14110c;
+  --screen: #120e08;
+  --fg-time: #ffd27a;
+  --fg: #e0a04a;
+  --fg-mid: #a86e28;
+  --fg-dim: #6e4a1c;
+  --fg-bar: #ffd27a;
+  --fg-bar-empty: #3a2814;
+  --line: #4a3218;
+  --dog-ink: #e0a44a;
+  --dog-faint: #6e4a22;
+  --dog-deep: #ffe6b0;
+  --font: "Courier New", "Sarasa Mono SC", Consolas, monospace;
+  --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
+  --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
+}
+
+html[data-skin="amber"],
+html[data-skin="amber"] body {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
+
+html[data-skin="amber"] .crt.is-on {
+  text-shadow: 0 0 1px rgba(255, 190, 80, 0.55);
+}
+
+html[data-skin="amber"] {
+  --ink: #ffe6b0;
+  --paper: #ffe8c0;
+  --ink-dim: #c4883a;
+  --screen-edge: #6a4818;
+  --screen-inset: rgba(255, 180, 60, 0.14);
+  --off-screen: #080705;
+  --off-edge: #16130e;
+  --off-inset: rgba(0, 0, 0, 0.55);
+  --key-fg: #c4883a;
+  --key-bg: #1a1610;
+  --key-edge: #5a4020;
+  --key-hi: #2a2218;
+  --key-fg-hot: #ffe6b0;
+  --key-edge-hot: #c4883a;
+  --key-bg-down: #0e0c08;
+  --key-shade: rgba(0, 0, 0, 0.55);
+  --key-on-fg: #ffe6b0;
+  --key-on-bg: #3a2810;
+  --key-on-shade: rgba(40, 20, 0, 0.5);
+  --home-bg: #16130e;
+  --home-edge: #6a5028;
+  --home-hi: #2a2218;
+  --home-mark: #c4883a;
+  --home-bg-down: #0c0a08;
+  --icon-hi: rgba(255, 220, 160, 0.28);
+  --fault-scan: rgba(255, 190, 80, 0.16);
+  --land: #8a5a22;
+  --map-line: #ffd27a;
+  --year-weekend: #24180e;
+  --year-bar: #4a3218;
+  --grain: linear-gradient(to bottom, transparent 0, transparent calc(100% - var(--scan-line)), rgba(255, 190, 80, 0.34) calc(100% - var(--scan-line)), rgba(255, 190, 80, 0.34) 100%);
+  --grain-opacity: 0.28;
+  --grain-blend: screen;
+  --grain-size: 100% var(--scan-pitch);
+  --speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.62 0 0 0 0 0.18 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --speck-opacity: 0.16;
+  --speck-blend: screen;
+  --speck-size: 80px 80px;
+  --flash-0: #080604;
+  --flash-1: #ffe0a0;
+  --flash-2: #5a3810;
+  --flash-3: var(--screen);
+}

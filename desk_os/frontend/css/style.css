@@ -38,6 +38,8 @@
   --map-line: var(--fg-mid);
   --year-weekend: var(--line);
   --year-bar: var(--fg-dim);
+  --scan-pitch: 3px;
+  --scan-line: 1px;
   --grain: none;
   --grain-opacity: 0;
   --grain-blend: normal;
@@ -681,11 +683,14 @@ body[data-mode="windowed"] .pixel-dog canvas {
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  background: repeating-linear-gradient(
+  background: linear-gradient(
     to bottom,
-    transparent 0 2px,
-    var(--fault-scan) 2px 3px
+    transparent 0,
+    transparent calc(100% - var(--scan-line)),
+    var(--fault-scan) calc(100% - var(--scan-line)),
+    var(--fault-scan) 100%
   );
+  background-size: 100% var(--scan-pitch);
   animation: sit-scan 0.24s steps(4, end) infinite;
 }
 

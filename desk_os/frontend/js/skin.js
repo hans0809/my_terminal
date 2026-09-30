@@ -8,6 +8,9 @@
   const FALLBACK = 'crt';
   const SKINS = [
     { id: 'crt', name: 'CRT' },
+    { id: 'phosphor', name: '磷光' },
+    { id: 'amber', name: '琥珀' },
+    { id: 'paper', name: '稿纸' },
   ];
 
   function known(id) {
