@@ -1172,6 +1172,7 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 .desk-slip__quote {
+  position: relative;
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
@@ -1201,6 +1202,23 @@ body[data-mode="windowed"] .terminal__info {
   user-select: text;
   -webkit-user-select: text;
   cursor: text !important;
+}
+
+.desk-slip__beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--fg-time);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.desk-slip__quote.is-hold,
+.desk-slip__quote.is-redraw {
+  overflow: hidden;
 }
 
 .desk-slip__from {
@@ -1404,9 +1422,29 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .desk-npc__lines li.is-new,
-  .desk-slip__line.is-new {
+  .desk-npc__lines li.is-new {
     animation: npc-in 0.45s ease both;
+  }
+
+  .desk-slip__quote.is-hold .desk-slip__line {
+    transform-origin: center center;
+    animation: slip-hold var(--slip-hold, 160ms) steps(5, end) both;
+  }
+
+  .desk-slip__quote.is-hold .desk-slip__from {
+    animation: slip-hold-from var(--slip-hold, 160ms) steps(4, end) both;
+  }
+
+  .desk-slip__quote.is-redraw .desk-slip__line {
+    animation: slip-reveal var(--slip-reveal, 360ms) steps(8, end) both;
+  }
+
+  .desk-slip__quote.is-redraw .desk-slip__beam {
+    animation: slip-beam var(--slip-reveal, 360ms) steps(8, end) both;
+  }
+
+  .desk-slip__quote.is-redraw .desk-slip__from {
+    animation: slip-cite var(--slip-reveal, 360ms) steps(4, end) both;
   }
 
   .desk-npc__dots i {
@@ -1430,6 +1468,36 @@ body[data-mode="windowed"] .terminal__info {
 @keyframes npc-in {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes slip-hold {
+  0% { transform: translateX(0) scaleY(1); color: var(--fg); opacity: 1; }
+  20% { transform: translateX(3px) scaleY(1); color: var(--fg); opacity: 1; }
+  40% { transform: translateX(-2px) scaleY(1); color: var(--fg); opacity: 1; }
+  60% { transform: translateX(0) scaleY(0.28); color: var(--fg-time); opacity: 1; }
+  80% { transform: translateX(0) scaleY(0.06); color: var(--fg-time); opacity: 1; }
+  100% { transform: translateX(0) scaleY(0.04); color: var(--fg-time); opacity: 0; }
+}
+
+@keyframes slip-hold-from {
+  0%, 40% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes slip-reveal {
+  0% { clip-path: inset(0 0 100% 0); color: var(--fg-time); }
+  100% { clip-path: inset(0 0 0 0); color: var(--fg); }
+}
+
+@keyframes slip-beam {
+  0% { top: 0; opacity: 1; }
+  100% { top: calc(100% - 2px); opacity: 1; }
+}
+
+@keyframes slip-cite {
+  0%, 45% { opacity: 0; }
+  50% { opacity: 1; color: var(--fg-time); }
+  100% { opacity: 1; color: var(--fg-dim); }
 }
 
 .npc-chat__form {
@@ -2057,6 +2125,10 @@ body[data-mode="windowed"] .terminal__info {
   flex: none;
   font-variant-numeric: tabular-nums;
   text-align: center;
+}
+
+.sit-field--num.sit-field--ms {
+  width: 5.4ch;
 }
 
 .sit-field--clock {

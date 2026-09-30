@@ -33,6 +33,17 @@ def _event(kind: str, importance: int, data: dict, now: float) -> dict:
     }
 
 
+def _latest_quake(value) -> dict:
+    quake = value if isinstance(value, dict) else {}
+    rows = quake.get("recent")
+    if isinstance(rows, list) and rows and isinstance(rows[0], dict):
+        latest = dict(rows[0])
+        if quake.get("id") and not latest.get("id"):
+            latest["id"] = quake.get("id")
+        return latest
+    return quake
+
+
 def _num(value) -> float | None:
     if isinstance(value, bool) or value is None:
         return None
@@ -65,7 +76,7 @@ def _snapshot(ctx: dict, now: float, prev: dict | None) -> dict:
     desk = ctx.get("desk") if isinstance(ctx.get("desk"), dict) else {}
     weather = ctx.get("weather") if isinstance(ctx.get("weather"), dict) else {}
     rss = ctx.get("rss") if isinstance(ctx.get("rss"), dict) else {}
-    quake = ctx.get("earthquake") if isinstance(ctx.get("earthquake"), dict) else {}
+    quake = _latest_quake(ctx.get("earthquake"))
     planes = ctx.get("aircraft") if isinstance(ctx.get("aircraft"), dict) else {}
     network = system.get("network") if isinstance(system.get("network"), dict) else {}
     usage = _num(gpu.get("usage"))
@@ -108,6 +119,7 @@ def _snapshot(ctx: dict, now: float, prev: dict | None) -> dict:
         "quake_id": quake.get("id"),
         "quake_mag": _num(quake.get("magnitude")),
         "quake_place": quake.get("place"),
+        "quake_time": quake.get("time"),
         "planes": _num(planes.get("count")),
         "page": str(desk.get("current_page") or ""),
         "app": app,
@@ -297,6 +309,7 @@ def _quiet_events(old: dict, snap: dict, now: float) -> list[dict]:
             "id": quake,
             "magnitude": snap.get("quake_mag"),
             "place": snap.get("quake_place"),
+            "time": snap.get("quake_time"),
         }, now))
     planes = snap.get("planes")
     old_planes = old.get("planes")
@@ -375,10 +388,10 @@ def prepare_trigger(kind: str, ctx: dict) -> dict | None:
             "source": rss.get("source"),
         }, now)
     if kind == "earthquake_update":
-        quake = ctx.get("earthquake") if isinstance(ctx.get("earthquake"), dict) else {}
+        quake = _latest_quake(ctx.get("earthquake"))
         if quake.get("magnitude") is None:
             quake = {"id": "trigger", "magnitude": 5.6, "place": "TEST", "time": None}
-            ctx["earthquake"] = quake
+            ctx["earthquake"] = {"id": quake["id"], "recent": [dict(quake)]}
         mag = quake.get("magnitude")
         rank = 4 if isinstance(mag, (int, float)) and mag >= 6 else 3
         return _event(kind, rank, {
@@ -386,6 +399,7 @@ def prepare_trigger(kind: str, ctx: dict) -> dict | None:
             "id": quake.get("id"),
             "magnitude": mag,
             "place": quake.get("place"),
+            "time": quake.get("time"),
         }, now)
     if kind == "disk_warning":
         system["disk"] = [{

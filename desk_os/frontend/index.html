@@ -7,10 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=101">
+  <link rel="stylesheet" href="/css/style.css?v=102">
   <link rel="stylesheet" href="/css/flow.css?v=16">
   <link rel="stylesheet" href="/css/year.css?v=20">
-  <link rel="stylesheet" href="/css/flight.css?v=13">
+  <link rel="stylesheet" href="/css/flight.css?v=15">
   <link rel="stylesheet" href="/css/earth.css?v=6">
 </head>
 <body data-mode="windowed" data-layer="status">
@@ -182,6 +182,7 @@
                 <section id="desk-slip" class="desk-slip" aria-label="一言">
                   <blockquote class="desk-slip__quote">
                     <p id="slip-line" class="desk-slip__line"></p>
+                    <span class="desk-slip__beam" aria-hidden="true"></span>
                     <footer id="slip-from" class="desk-slip__from" hidden>
                       <cite id="slip-kind"></cite>
                     </footer>
@@ -270,6 +271,17 @@
                   </svg>
                 </span>
                 <span class="app-name">NPC</span>
+              </button>
+              <button class="app-tile" type="button" data-app="flight">
+                <span class="app-icon" aria-hidden="true">
+                  <svg viewBox="0 0 32 32" fill="currentColor" stroke="none">
+                    <rect x="15" y="4" width="2" height="8"/>
+                    <rect x="5" y="12" width="22" height="2"/>
+                    <rect x="14" y="12" width="4" height="11"/>
+                    <rect x="10" y="22" width="12" height="2"/>
+                  </svg>
+                </span>
+                <span class="app-name">FLIGHT</span>
               </button>
             </div>
           </div>
@@ -522,6 +534,15 @@
                   </span>
                 </div>
                 <div class="sit-row">
+                  <span class="sit-k">DRAW</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-npc-step="draw" data-dir="-1" aria-label="缩短换句动画">−</button>
+                    <input id="slip-draw" class="sit-field sit-field--num sit-field--ms" inputmode="numeric" maxlength="4" spellcheck="false" autocomplete="off" aria-label="换句动画时长，毫秒，0 为直接换">
+                    <span class="sit-unit">MS</span>
+                    <button class="sit-step" type="button" data-npc-step="draw" data-dir="1" aria-label="延长换句动画">+</button>
+                  </span>
+                </div>
+                <div class="sit-row">
                   <span class="sit-k">EVERY</span>
                   <span class="sit-ctrl">
                     <button class="sit-step" type="button" data-npc-step="slip" data-dir="-1" aria-label="缩短间隔">−</button>
@@ -563,6 +584,39 @@
             </section>
             <section id="app-flight" class="app-page" data-layer="all">
               <p class="app-page__title">FLIGHT</p>
+              <div class="flight-set">
+                <div class="sit-row">
+                  <span class="sit-k">DRAW</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-flight-step="max_draw" data-dir="-1" aria-label="减少绘制架数">−</button>
+                    <input id="flight-max-draw" class="sit-field sit-field--num flight-limit" inputmode="numeric" maxlength="6" spellcheck="false" autocomplete="off" placeholder="不限" value="900" aria-label="绘制架数上限">
+                    <button class="sit-step" type="button" data-flight-step="max_draw" data-dir="1" aria-label="增加绘制架数">+</button>
+                    <span class="sit-unit">架</span>
+                    <button class="sit-step flight-none" type="button" data-flight-none="max_draw">NONE</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">WARM</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-flight-step="warm_max" data-dir="-1" aria-label="减少补全航线">−</button>
+                    <input id="flight-warm-max" class="sit-field sit-field--num flight-limit" inputmode="numeric" maxlength="6" spellcheck="false" autocomplete="off" placeholder="不限" value="900" aria-label="补全航线上限">
+                    <button class="sit-step" type="button" data-flight-step="warm_max" data-dir="1" aria-label="增加补全航线">+</button>
+                    <span class="sit-unit">条</span>
+                    <button class="sit-step flight-none" type="button" data-flight-none="warm_max">NONE</button>
+                  </span>
+                </div>
+                <div class="sit-row">
+                  <span class="sit-k">LINE</span>
+                  <span class="sit-ctrl">
+                    <button class="sit-step" type="button" data-flight-step="route_draw" data-dir="-1" aria-label="减少画面航线">−</button>
+                    <input id="flight-route-draw" class="sit-field sit-field--num flight-limit" inputmode="numeric" maxlength="6" spellcheck="false" autocomplete="off" placeholder="不限" value="80" aria-label="画面航线上限">
+                    <button class="sit-step" type="button" data-flight-step="route_draw" data-dir="1" aria-label="增加画面航线">+</button>
+                    <span class="sit-unit">条</span>
+                    <button class="sit-step flight-none" type="button" data-flight-none="route_draw">NONE</button>
+                  </span>
+                </div>
+                <p class="sit-hint flight-set__note">DRAW 飞机，WARM 补航线，LINE 画面上的线。留空或 NONE 不设上限。</p>
+              </div>
               <div class="flight-page__meta" data-map-goto="flight">
                 <span id="flight-page-count">-- AIRCRAFT</span>
                 <span id="flight-page-state" class="flight__state">--</span>
@@ -628,10 +682,10 @@
   <script src="/js/log.js?v=8"></script>
   <script src="/js/dashboard.js?v=20"></script>
   <script src="/js/sit.js?v=5"></script>
-  <script src="/js/flight.js?v=21"></script>
+  <script src="/js/flight.js?v=23"></script>
   <script src="/js/world-map.js?v=4"></script>
   <script src="/js/earthquake.js?v=4"></script>
   <script src="/js/pixel-dog.js?v=28"></script>
-  <script src="/js/npc.js?v=22"></script>
+  <script src="/js/npc.js?v=23"></script>
 </body>
 </html>

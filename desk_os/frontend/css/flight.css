@@ -114,6 +114,14 @@
   pointer-events: auto;
 }
 
+.flight-craft-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .flight__svg {
   display: block;
   width: 100%;
@@ -242,6 +250,49 @@
 
 .flight:focus:not(:focus-visible) {
   outline: none;
+}
+
+#app-flight {
+  overflow: auto;
+}
+
+.flight-set {
+  flex: none;
+  margin-bottom: 8px;
+}
+
+.flight-set .sit-row {
+  padding: 7px 0 6px;
+  column-gap: 14px;
+}
+
+.flight-set .sit-ctrl {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.flight-set .flight-limit {
+  width: 6ch;
+  font-size: calc(clamp(16px, 2vmin, 20px) * var(--type-scale, 1));
+}
+
+.flight-set .flight-limit::placeholder {
+  color: var(--fg-dim);
+  letter-spacing: 0.08em;
+}
+
+.flight-set .sit-step {
+  font-size: calc(18px * var(--type-scale, 1));
+}
+
+.flight-set .flight-none {
+  font-size: calc(11px * var(--type-scale, 1));
+  letter-spacing: 0.14em;
+  color: var(--fg-dim);
+}
+
+.flight-set__note {
+  margin: 6px 0 0;
 }
 
 #app-flight .flight-page__meta {

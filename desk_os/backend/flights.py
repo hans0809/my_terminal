@@ -6,6 +6,7 @@
 
 import json
 import math
+import os
 import threading
 import time
 import urllib.error
@@ -39,7 +40,23 @@ _HUBS = (
 # 飞出半径或某次请求漏掉时，先按上次位置再留一会儿。
 HOLD_SEC = 100
 HUB_NM = 250
-MAX_DRAW = 900
+# 这三项可以在航班应用里改。空着表示不设上限。
+DEFAULT_MAX_DRAW = 900
+DEFAULT_WARM_MAX = 900
+DEFAULT_ROUTE_DRAW = 80
+_LIMIT_KEYS = ("max_draw", "warm_max", "route_draw")
+_LIMIT_DEFAULTS = {
+    "max_draw": DEFAULT_MAX_DRAW,
+    "warm_max": DEFAULT_WARM_MAX,
+    "route_draw": DEFAULT_ROUTE_DRAW,
+}
+SETTINGS_FILE = DATA_DIR / "flight_settings.json"
+SNAP_FILE = DATA_DIR / "flights_snap.json"
+_settings_lock = threading.Lock()
+_settings_cache: dict | None = None
+_settings_mtime: float | None = None
+_draw_epoch = 0
+_quick_token = None
 
 _lock = threading.Lock()
 _seen: dict[str, tuple[float, dict]] = {}
@@ -117,6 +134,113 @@ def _within_nm(lat: float, lon: float, hub_lat: float, hub_lon: float, nm: float
     return dx * dx + dy * dy <= limit * limit
 
 
+def _limit_value(value, default: int | None) -> int | None:
+    """空、0 表示不设上限。写了但不是数字时退回默认。"""
+    if value is None or value == "":
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return default
+    if number <= 0:
+        return None
+    return number
+
+
+def _normalize_limits(raw: dict | None) -> dict:
+    src = raw if isinstance(raw, dict) else {}
+    out = {}
+    for key, default in _LIMIT_DEFAULTS.items():
+        if key not in src:
+            out[key] = default
+        else:
+            out[key] = _limit_value(src.get(key), default)
+    return out
+
+
+def flight_settings() -> dict:
+    global _settings_cache, _settings_mtime
+    with _settings_lock:
+        try:
+            mtime = SETTINGS_FILE.stat().st_mtime
+        except OSError:
+            mtime = None
+        if _settings_cache is not None and mtime == _settings_mtime:
+            return dict(_settings_cache)
+        try:
+            raw = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError, TypeError):
+            raw = None
+        data = _normalize_limits(raw if isinstance(raw, dict) else None)
+        _settings_cache = data
+        _settings_mtime = mtime
+        return dict(data)
+
+
+def _cap_planes(planes: list[dict], cap: int | None) -> list[dict]:
+    if cap is None or len(planes) <= cap:
+        return planes
+    ordered = sorted(planes, key=lambda plane: (plane["lon"], plane["lat"], plane.get("icao24") or ""))
+    step = len(ordered) / cap
+    return [ordered[int(i * step)] for i in range(cap)]
+
+
+def _raised(old: int | None, new: int | None) -> bool:
+    if new is None:
+        return old is not None
+    if old is None:
+        return False
+    return new > old
+
+
+def _apply_draw_limit(old_cap: int | None, new_cap: int | None) -> None:
+    """调低就从当前这一份里抽掉。调高要等下一轮拉取，因为多出来的已经不在内存里。"""
+    global _draw_epoch
+    with _lock:
+        if new_cap is not None and (old_cap is None or new_cap < old_cap):
+            planes = _cap_planes(list(_state["aircraft"]), new_cap)
+            keep = {plane["icao24"] for plane in planes}
+            for icao in list(_seen):
+                if icao not in keep:
+                    del _seen[icao]
+            _state["aircraft"] = planes
+            _state["count"] = len(planes)
+            return
+        if _raised(old_cap, new_cap):
+            _draw_epoch += 1
+            _state["fresh_until"] = 0
+
+
+def save_flight_settings(fields: dict) -> dict:
+    global _settings_cache, _settings_mtime
+    if not isinstance(fields, dict):
+        fields = {}
+    old = flight_settings()
+    merged = dict(old)
+    for key in _LIMIT_KEYS:
+        if key in fields:
+            merged[key] = fields[key]
+    data = _normalize_limits(merged)
+    payload = json.dumps(data, ensure_ascii=False, indent=2)
+    with _settings_lock:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = SETTINGS_FILE.with_suffix(".tmp")
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, SETTINGS_FILE)
+        _settings_cache = data
+        try:
+            _settings_mtime = SETTINGS_FILE.stat().st_mtime
+        except OSError:
+            _settings_mtime = None
+    _apply_draw_limit(old.get("max_draw"), data.get("max_draw"))
+    if _raised(old.get("warm_max"), data.get("warm_max")):
+        with _lock:
+            planes = list(_state["aircraft"])
+        if planes:
+            _schedule_warm(planes)
+    return dict(data)
+
+
 def _retain(found: dict[str, dict], now: float, hold_hubs: tuple = ()) -> list[dict]:
     """把这一轮看到的并进记忆，太久没再出现的才删掉。
 
@@ -139,34 +263,39 @@ def _retain(found: dict[str, dict], now: float, hold_hubs: tuple = ()) -> list[d
         if now - seen_at > HOLD_SEC:
             del _seen[icao]
     ordered = [plane for _, plane in _seen.values()]
-    if len(ordered) > MAX_DRAW:
-        ordered = sorted(ordered, key=lambda plane: (plane["lon"], plane["lat"], plane["icao24"]))
-        step = len(ordered) / MAX_DRAW
-        chosen = [ordered[int(i * step)] for i in range(MAX_DRAW)]
+    chosen = _cap_planes(ordered, flight_settings()["max_draw"])
+    if len(chosen) < len(ordered):
         keep = {plane["icao24"] for plane in chosen}
         for icao in list(_seen):
             if icao not in keep:
                 del _seen[icao]
-        return chosen
-    return ordered
+    return chosen
 
 
-def _copy() -> dict:
-    has = bool(_state["updated_at"])
-    aircraft = []
-    for plane in _state["aircraft"]:
-        row = dict(plane)
-        route = _cached_route(plane.get("callsign"))
-        if route and route.get("origin") and route.get("destination"):
+def _snapshot() -> dict:
+    """先拷出飞机，再在锁外补航线，避免一次请求占着两把锁。"""
+    with _lock:
+        planes = [dict(plane) for plane in _state["aircraft"]]
+        has = bool(_state["updated_at"])
+        payload = {
+            "updated_at": _state["updated_at"],
+            "stale": bool(_state["stale"] or not has),
+            "offline": bool(_state["offline"] and not planes),
+            "count": int(_state["count"]),
+            "aircraft": planes,
+        }
+    now = time.time()
+    fresh = {}
+    with _route_lock:
+        for key, hit in _route_cache.items():
+            route = hit[1]
+            if _cache_fresh(hit, now) and route.get("origin") and route.get("destination"):
+                fresh[key] = route
+    for row in planes:
+        route = fresh.get(_route_key(row.get("callsign")))
+        if route:
             row.update(route)
-        aircraft.append(row)
-    return {
-        "updated_at": _state["updated_at"],
-        "stale": bool(_state["stale"] or not has),
-        "offline": bool(_state["offline"] and not _state["aircraft"]),
-        "count": int(_state["count"]),
-        "aircraft": aircraft,
-    }
+    return payload
 
 
 def _from_adsb(row) -> dict | None:
@@ -280,12 +409,127 @@ def _opensky() -> dict[str, dict]:
     return found
 
 
-def _fetch() -> None:
-    global _opensky_block_until
+def _plane_row(plane: dict) -> dict:
+    return {
+        "icao24": plane.get("icao24"),
+        "callsign": plane.get("callsign"),
+        "lat": plane.get("lat"),
+        "lon": plane.get("lon"),
+        "altitude": plane.get("altitude"),
+        "velocity": plane.get("velocity") or 0,
+        "heading": plane.get("heading") or 0,
+        "vertical_rate": plane.get("vertical_rate"),
+        "on_ground": False,
+    }
+
+
+def _save_snap(planes: list[dict], updated: str) -> None:
+    payload = json.dumps(
+        {"updated_at": updated, "aircraft": [_plane_row(plane) for plane in planes]},
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    try:
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = SNAP_FILE.with_suffix(".tmp")
+        tmp.write_text(payload, encoding="utf-8")
+        os.replace(tmp, SNAP_FILE)
+    except OSError:
+        return
+
+
+def _load_snap() -> None:
+    try:
+        raw = json.loads(SNAP_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return
+    rows = raw.get("aircraft") if isinstance(raw, dict) else None
+    if not isinstance(rows, list):
+        return
     now = time.time()
+    planes = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        plane = _plane_row(row)
+        icao = str(plane.get("icao24") or "").strip().lower()
+        lat = _num(plane.get("lat"))
+        lon = _num(plane.get("lon"))
+        if not icao or lat is None or lon is None:
+            continue
+        plane["icao24"] = icao
+        plane["lat"] = lat
+        plane["lon"] = lon
+        call = str(plane.get("callsign") or icao).strip().upper()
+        plane["callsign"] = call or icao.upper()
+        planes.append(plane)
+    if not planes:
+        return
+    planes = _cap_planes(planes, flight_settings()["max_draw"])
+    with _lock:
+        if _state["aircraft"]:
+            return
+        for plane in planes:
+            _seen[plane["icao24"]] = (now, plane)
+        _state["aircraft"] = planes
+        _state["count"] = len(planes)
+        _state["updated_at"] = raw.get("updated_at")
+        _state["stale"] = True
+        _state["offline"] = False
+        _state["fresh_until"] = 0
+
+
+def _publish(found, hold_hubs, ttl: float, epoch: int, token=None, stale=None) -> bool:
+    global _quick_token
+    now = time.time()
+    updated = datetime.now(timezone.utc).isoformat()
+    with _lock:
+        if token is not None and token is not _quick_token:
+            return False
+        if not found and not _seen:
+            raise RuntimeError("adsb")
+        planes = _retain(found, now, hold_hubs)
+        _state["fetched_at"] = now
+        _state["fresh_until"] = 0 if epoch != _draw_epoch else now + ttl
+        _state["updated_at"] = updated
+        _state["stale"] = (not bool(found)) if stale is None else bool(stale)
+        _state["offline"] = False
+        _state["count"] = len(planes)
+        _state["aircraft"] = planes
+        saved = [_plane_row(plane) for plane in planes]
+    if stale is not True:
+        _schedule_warm(planes)
+    _save_snap(saved, updated)
+    return True
+
+
+def _fetch() -> None:
+    global _opensky_block_until, _quick_token
+    now = time.time()
+    with _lock:
+        epoch = _draw_epoch
+        empty = not _state["aircraft"]
     found: dict[str, dict] = {}
     hold_hubs: tuple = ()
     ttl = HUB_TTL
+    token = None
+    quick_done = None
+    if empty and now >= _opensky_block_until:
+        token = object()
+        quick_done = threading.Event()
+        _quick_token = token
+
+        def quick():
+            try:
+                got, failed = _gather(_ADSB_URL)
+                if got:
+                    _publish(got, failed, 0, epoch, token=token, stale=True)
+            except Exception:
+                return
+            finally:
+                quick_done.set()
+
+        threading.Thread(target=quick, daemon=True).start()
     if now >= _opensky_block_until:
         try:
             found = _opensky()
@@ -294,34 +538,34 @@ def _fetch() -> None:
             _opensky_block_until = time.time() + max(60.0, float(exc.seconds))
         except Exception:
             _opensky_block_until = time.time() + 10 * 60
-    if not found:
-        found, failed = _gather(_ADSB_URL)
-        if failed:
-            extra, failed = _gather(_ADSB_FALLBACK, failed)
-            for icao, plane in extra.items():
-                found.setdefault(icao, plane)
-        if len(found) < 8 and not failed:
-            extra, failed = _gather(_ADSB_FALLBACK)
-            for icao, plane in extra.items():
-                found.setdefault(icao, plane)
-        hold_hubs = failed
-        ttl = HUB_TTL
+    if found:
+        _quick_token = None
+        _publish(found, (), ttl, epoch)
+        return
+    if quick_done is not None:
+        quick_done.wait(timeout=12)
+        _quick_token = None
+        with _lock:
+            have = bool(_state["aircraft"])
+            if have and epoch == _draw_epoch:
+                _state["stale"] = True
+                _state["fresh_until"] = time.time() + HUB_TTL
+        if have:
+            return
+    found, failed = _gather(_ADSB_URL)
+    if failed:
+        extra, failed = _gather(_ADSB_FALLBACK, failed)
+        for icao, plane in extra.items():
+            found.setdefault(icao, plane)
+    if len(found) < 8 and not failed:
+        extra, failed = _gather(_ADSB_FALLBACK)
+        for icao, plane in extra.items():
+            found.setdefault(icao, plane)
+    hold_hubs = failed
+    ttl = HUB_TTL
     if not found and not hold_hubs:
         raise RuntimeError("adsb")
-    now = time.time()
-    updated = datetime.now(timezone.utc).isoformat()
-    with _lock:
-        if not found and not _seen:
-            raise RuntimeError("adsb")
-        planes = _retain(found, now, hold_hubs)
-        _state["fetched_at"] = now
-        _state["fresh_until"] = now + ttl
-        _state["updated_at"] = updated
-        _state["stale"] = not bool(found)
-        _state["offline"] = False
-        _state["count"] = len(planes)
-        _state["aircraft"] = planes
-    _schedule_warm(planes)
+    _publish(found, hold_hubs, ttl, epoch)
 
 
 _route_lock = threading.Lock()
@@ -337,7 +581,6 @@ ROUTE_URL = "https://api.adsb.lol/api/0/route/{callsign}"
 ROUTE_FILE = DATA_DIR / "routes.json"
 HOME = (39.90, 116.40)
 WARM_WORKERS = 16
-WARM_MAX = 900
 
 
 def _route_key(callsign: str) -> str:
@@ -595,6 +838,7 @@ def _schedule_warm(planes: list[dict]) -> None:
         (plane for plane in planes if _looks_flight(plane.get("callsign"), plane.get("icao24"))),
         key=_home_dist,
     )
+    warm_cap = flight_settings()["warm_max"]
     with _route_lock:
         for plane in ranked:
             key = _route_key(plane.get("callsign"))
@@ -605,7 +849,7 @@ def _schedule_warm(planes: list[dict]) -> None:
                 continue
             seen.add(key)
             todo.append({"callsign": key})
-            if len(todo) >= WARM_MAX:
+            if warm_cap is not None and len(todo) >= warm_cap:
                 break
     if not todo:
         return
@@ -616,34 +860,47 @@ def _schedule_warm(planes: list[dict]) -> None:
     threading.Thread(target=_warm_body, args=(todo,), daemon=True).start()
 
 
+def _fetch_guard() -> None:
+    try:
+        _fetch()
+    except Exception:
+        with _lock:
+            _state["stale"] = True
+            _state["fetched_at"] = time.time()
+            _state["fresh_until"] = time.time() + 45
+            if not _state["updated_at"]:
+                _state["offline"] = True
+                _state["count"] = 0
+                _state["aircraft"] = []
+    finally:
+        with _lock:
+            _state["inflight"] = False
+
+
+def _kick() -> None:
+    with _lock:
+        if _state["inflight"]:
+            return
+        if time.time() < float(_state.get("fresh_until") or 0):
+            return
+        _state["inflight"] = True
+    threading.Thread(target=_fetch_guard, daemon=True, name="flights").start()
+
+
+def start() -> None:
+    """开机就去拉，窗口出来时多半已经有飞机。"""
+    _kick()
+
+
 _load_route_cache()
+_load_snap()
 
 
 def get_flights() -> dict:
-    """缓存命中直接返回。失败时保留上一份成功数据，并标 stale。"""
+    """有缓存立刻返回。过期了在后台刷新，不再把这次请求堵住。"""
     try:
-        now = time.time()
-        with _lock:
-            age_ok = now < float(_state.get("fresh_until") or 0)
-            if _state["inflight"] or age_ok:
-                return _copy()
-            _state["inflight"] = True
-        try:
-            _fetch()
-        except Exception:
-            with _lock:
-                _state["stale"] = True
-                _state["fetched_at"] = time.time()
-                _state["fresh_until"] = time.time() + 45
-                if not _state["updated_at"]:
-                    _state["offline"] = True
-                    _state["count"] = 0
-                    _state["aircraft"] = []
-        finally:
-            with _lock:
-                _state["inflight"] = False
-        with _lock:
-            return _copy()
+        _kick()
+        return _snapshot()
     except Exception:
         return {
             "updated_at": None,

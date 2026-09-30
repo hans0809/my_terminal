@@ -33,6 +33,8 @@
   const slipLineEl = document.getElementById('slip-line');
   const slipEnabledEl = document.getElementById('slip-enabled');
   const slipMinEl = document.getElementById('slip-min');
+  const slipDrawEl = document.getElementById('slip-draw');
+  const slipQuoteEl = document.querySelector('.desk-slip__quote');
   const slipKindsEl = document.getElementById('slip-kinds');
   const slipKindForm = document.getElementById('slip-kind-form');
   const slipKindInput = document.getElementById('slip-kind-input');
@@ -69,6 +71,8 @@
   let slipOn = true;
   let slipStamp = '';
   let slipShown = '';
+  let slipDrawTimer = 0;
+  let slipDrawToken = 0;
   let slipKinds = [];
   let kindBusy = false;
   let kindQueue = Promise.resolve();
@@ -146,6 +150,7 @@
       paintKinds();
     }
     if (slipMinEl && document.activeElement !== slipMinEl) slipMinEl.value = String(cfg.slip_min ?? 30);
+    if (slipDrawEl && document.activeElement !== slipDrawEl) slipDrawEl.value = String(cfg.slip_draw_ms ?? 520);
   }
 
   function loadSettings() {
@@ -170,6 +175,7 @@
       min_importance: rank,
       slip_enabled: slipOn,
       slip_min: clamp(slipMinEl && slipMinEl.value, 1, 720, 30),
+      slip_draw_ms: clamp(slipDrawEl && slipDrawEl.value, 0, 2000, 520),
       slip_kinds: slipKindList(),
     };
   }
@@ -181,6 +187,7 @@
     if (capEl) capEl.value = String(body.daily_cap);
     if (retryEl) retryEl.value = String(body.llm_retries);
     if (slipMinEl) slipMinEl.value = String(body.slip_min);
+    if (slipDrawEl) slipDrawEl.value = String(body.slip_draw_ms);
     saveEl.disabled = true;
     const packed = JSON.stringify(body);
     const run = kindQueue.catch(() => {}).then(() => fetch('/api/npc/settings', {
@@ -400,20 +407,57 @@
     return SLIP_LABEL[kind] || kind || '';
   }
 
+  function drawMs() {
+    return clamp(slipDrawEl && slipDrawEl.value, 0, 2000, 520);
+  }
+
+  function applySlip(text, name) {
+    slipLineEl.textContent = text;
+    slipKindEl.textContent = name;
+    if (slipFromEl) slipFromEl.hidden = !name;
+  }
+
+  function clearRedraw() {
+    window.clearTimeout(slipDrawTimer);
+    slipDrawTimer = 0;
+    if (!slipQuoteEl) return;
+    slipQuoteEl.classList.remove('is-hold', 'is-redraw');
+  }
+
   function paintSlipHome(current) {
     if (!slipLineEl || !slipKindEl) return;
     const text = current && current.text ? String(current.text) : '';
     const name = current ? slipName(current.kind) : '';
     const mark = `${current && current.id ? current.id : ''}|${text}`;
-    slipKindEl.textContent = name;
-    if (slipFromEl) slipFromEl.hidden = !name;
     if (mark === slipShown) return;
+    const first = !slipShown;
     slipShown = mark;
-    slipLineEl.textContent = text;
-    slipLineEl.classList.remove('is-new');
-    if (!text) return;
-    void slipLineEl.offsetWidth;
-    slipLineEl.classList.add('is-new');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ms = drawMs();
+    if (first || reduce || ms <= 0 || !slipLineEl.textContent || !slipQuoteEl) {
+      clearRedraw();
+      applySlip(text, name);
+      return;
+    }
+    const hold = Math.max(0, Math.round(ms * 0.32));
+    const reveal = Math.max(0, ms - hold);
+    const token = ++slipDrawToken;
+    slipQuoteEl.style.setProperty('--slip-hold', `${hold}ms`);
+    slipQuoteEl.style.setProperty('--slip-reveal', `${reveal}ms`);
+    slipQuoteEl.classList.remove('is-redraw');
+    void slipQuoteEl.offsetWidth;
+    slipQuoteEl.classList.add('is-hold');
+    window.clearTimeout(slipDrawTimer);
+    slipDrawTimer = window.setTimeout(() => {
+      if (token !== slipDrawToken) return;
+      slipQuoteEl.classList.remove('is-hold');
+      slipQuoteEl.classList.add('is-redraw');
+      applySlip(text, name);
+      slipDrawTimer = window.setTimeout(() => {
+        if (token !== slipDrawToken) return;
+        slipQuoteEl.classList.remove('is-redraw');
+      }, reveal + 40);
+    }, hold);
   }
 
   function paintSlipLog(items) {
@@ -855,6 +899,11 @@
     btn.addEventListener('click', () => {
       const dir = Number(btn.dataset.dir) || 0;
       const step = btn.dataset.npcStep;
+      if (step === 'draw') {
+        if (!slipDrawEl) return;
+        slipDrawEl.value = String(clamp(Number(slipDrawEl.value) + dir * 40, 0, 2000, 520));
+        return;
+      }
       const spec = {
         cap: [capEl, 400, 120],
         slip: [slipMinEl, 720, 30],

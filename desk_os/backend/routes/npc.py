@@ -42,6 +42,7 @@ class SettingsIn(BaseModel):
     min_importance: int | None = None
     slip_enabled: bool | None = None
     slip_min: int | None = None
+    slip_draw_ms: int | None = None
     slip_kinds: list[KindIn] | None = None
 
 

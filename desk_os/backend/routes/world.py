@@ -1,11 +1,30 @@
 """航班与地震。"""
 
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from backend.earthquakes import get_earthquakes
-from backend.flights import get_flights, get_route
+from backend.flights import flight_settings, get_flights, get_route, save_flight_settings
 
 router = APIRouter()
+
+
+class FlightSettingsIn(BaseModel):
+    max_draw: int | None = None
+    warm_max: int | None = None
+    route_draw: int | None = None
+
+
+@router.get("/api/flights/settings")
+def api_flight_settings():
+    """绘制、补航线、画面航线的上限。空值表示不设上限。"""
+    return flight_settings()
+
+
+@router.put("/api/flights/settings")
+def api_flight_settings_put(body: FlightSettingsIn):
+    dump = getattr(body, "model_dump", None) or body.dict
+    return save_flight_settings(dump(exclude_unset=True))
 
 
 @router.get("/api/flights")

@@ -109,6 +109,7 @@ def normalize(raw: dict | None) -> dict:
         "min_importance": rank,
         "slip_enabled": bool(src.get("slip_enabled", True)),
         "slip_min": _int(src.get("slip_min"), 30, 1, 720),
+        "slip_draw_ms": _int(src.get("slip_draw_ms"), 520, 0, 2000),
         "slip_kinds": _kinds(src.get("slip_kinds")),
     }
 
@@ -139,7 +140,7 @@ def save(fields: dict) -> dict:
         fields = {}
     for key in (
         "enabled", "base_url", "api_key", "model", "cooldown_min", "daily_cap", "llm_retries", "min_importance",
-        "slip_enabled", "slip_min", "slip_kinds",
+        "slip_enabled", "slip_min", "slip_draw_ms", "slip_kinds",
     ):
         if key in fields and fields[key] is not None:
             merged[key] = fields[key]

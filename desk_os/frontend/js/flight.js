@@ -8,6 +8,8 @@
   const VB_H = 1800;
   const POLL_MS = 8000;
   const TRACK_MAX = 8;
+  const LIMIT_STEP = { max_draw: 100, warm_max: 100, route_draw: 10 };
+  const LIMIT_FALLBACK = { max_draw: 900, warm_max: 900, route_draw: 80 };
   const TRACK_TTL = 40000;
   const NS = 'http://www.w3.org/2000/svg';
   const PLANE = 'M0 -1.35 L0.28 -0.15 L1.05 0.2 L0.28 0.02 L0.22 0.85 L0 0.48 L-0.22 0.85 L-0.28 0.02 L-1.05 0.2 L-0.28 -0.15 Z';
@@ -28,14 +30,40 @@
   const tracks = new Map();
   const motion = new Map();
   const latest = new Map();
+  const limitEls = {
+    max_draw: document.getElementById('flight-max-draw'),
+    warm_max: document.getElementById('flight-warm-max'),
+    route_draw: document.getElementById('flight-route-draw'),
+  };
+  let routeDraw = 80;
+  let limitTimer = 0;
+  let limitSeq = 0;
   let payload = null;
   let selected = '';
   let busy = false;
   let raf = 0;
   let chromeSec = -1;
 
+  const planePath = new Path2D(PLANE);
+
   function el(name) {
     return document.createElementNS(NS, name);
+  }
+
+  function mountCraftCanvas(svg) {
+    const stage = svg.parentElement;
+    if (!stage) return null;
+    const canvas = document.createElement('canvas');
+    canvas.className = 'flight-craft-canvas';
+    canvas.setAttribute('aria-hidden', 'true');
+    stage.appendChild(canvas);
+    return canvas;
+  }
+
+  function craftPx(svg) {
+    const box = mapBox(svg);
+    const zoom = VB_W / Math.max(box.w, 1);
+    return Math.min(26, 4.2 * Math.pow(zoom, 0.62));
   }
 
   function ensureRouteLayer(svg) {
@@ -65,6 +93,7 @@
       meMark: null,
       pool: new Map(),
       trails: new Map(),
+      canvas: mountCraftCanvas(svg),
     };
     drawGrid(view.grid);
     drawMe(view);
@@ -302,7 +331,7 @@
       pushTrack(plane.icao24, plane.lon, plane.lat, wall);
     });
     dropStale(wall, live);
-    views.forEach(drawTrails);
+    views.forEach((view) => { if (viewOn(view)) drawTrails(view); });
   }
 
   function apply(data) {
@@ -487,20 +516,93 @@
     });
   }
 
+  function screenPoint(svg, lon, lat) {
+    const rect = svg.getBoundingClientRect();
+    const box = mapBox(svg);
+    const xy = project(lon, lat);
+    return {
+      rect,
+      x: ((xy[0] - box.x) / Math.max(box.w, 1)) * rect.width,
+      y: ((xy[1] - box.y) / Math.max(box.h, 1)) * rect.height,
+    };
+  }
+
+  function planeAtPoint(svg, clientX, clientY) {
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8) return null;
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+    const hit = craftPx(svg) + 8;
+    let best = null;
+    let bestD = hit * hit;
+    const now = performance.now();
+    latest.forEach((plane, id) => {
+      const at = currentPose(id, now);
+      if (!at) return;
+      const pt = screenPoint(svg, at.lon, at.lat);
+      const d = (pt.x - px) * (pt.x - px) + (pt.y - py) * (pt.y - py);
+      if (d < bestD) {
+        bestD = d;
+        best = plane;
+      }
+    });
+    return best;
+  }
+
+  function drawCraft(view, now) {
+    const canvas = view.canvas;
+    const svg = view.svg;
+    if (!canvas || !svg) return;
+    const rect = svg.getBoundingClientRect();
+    if (rect.width < 8 || rect.height < 8) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.round(rect.width * dpr));
+    const h = Math.max(1, Math.round(rect.height * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+    const px = craftPx(svg);
+    const color = getComputedStyle(view.craft || svg).color || '#222';
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    latest.forEach((_plane, id) => {
+      const at = currentPose(id, now);
+      if (!at) return;
+      const pt = screenPoint(svg, at.lon, at.lat);
+      if (pt.x < -24 || pt.y < -24 || pt.x > rect.width + 24 || pt.y > rect.height + 24) return;
+      ctx.save();
+      ctx.translate(pt.x, pt.y);
+      ctx.rotate(at.heading * Math.PI / 180);
+      const s = px / 2.2;
+      ctx.scale(s, s);
+      ctx.fill(planePath);
+      ctx.restore();
+      if (id === selected) {
+        ctx.strokeRect(pt.x - px * 0.65, pt.y - px * 0.75, px * 1.3, px * 1.5);
+      }
+    });
+  }
+
   function placeTag() {
-    if (!flightTag || flightTag.hidden || !homeStage) return;
-    const homeView = views.find((view) => !view.page);
-    const node = homeView && homeView.pool.get(selected);
-    if (!node) return;
+    if (!flightTag || flightTag.hidden || !homeStage || !homeSvg || !selected) return;
+    const at = currentPose(selected, performance.now());
+    if (!at) return;
     const stage = homeStage.getBoundingClientRect();
-    const icon = node.g.getBoundingClientRect();
-    if (stage.width < 8 || icon.width < 1) return;
+    const pt = screenPoint(homeSvg, at.lon, at.lat);
+    if (stage.width < 8 || pt.rect.width < 8) return;
+    const px = craftPx(homeSvg);
     const gap = 8;
-    let left = icon.right - stage.left + gap;
-    let top = icon.top - stage.top;
+    let left = pt.rect.left - stage.left + pt.x + px * 0.5 + gap;
+    let top = pt.rect.top - stage.top + pt.y - px * 0.5;
     const tagW = flightTag.offsetWidth;
     const tagH = flightTag.offsetHeight;
-    if (left + tagW > stage.width - 4) left = icon.left - stage.left - gap - tagW;
+    if (left + tagW > stage.width - 4) left = pt.rect.left - stage.left + pt.x - px * 0.5 - gap - tagW;
     if (top + tagH > stage.height - 2) top = stage.height - tagH - 2;
     left = Math.max(2, Math.min(left, stage.width - tagW - 2));
     top = Math.max(2, top);
@@ -529,6 +631,7 @@
   }
 
   const routeQueue = [];
+  const routeQueued = new Set();
   let routeWorkers = 0;
   let warmTimer = 0;
 
@@ -596,6 +699,7 @@
   function pumpRoutes() {
     while (routeWorkers < 8 && routeQueue.length) {
       const key = routeQueue.shift();
+      routeQueued.delete(key);
       const known = routes.get(key);
       if (known) continue;
       startRoute(key);
@@ -605,16 +709,17 @@
   function enqueueRoute(callsign, front) {
     const key = routeKey(callsign);
     if (!key || key.length < 3) return;
-    const known = routes.get(key);
-    if (known) return;
-    const at = routeQueue.indexOf(key);
-    if (at >= 0) {
-      if (front) {
+    if (routes.has(key)) return;
+    if (routeQueued.has(key)) {
+      if (!front) return;
+      const at = routeQueue.indexOf(key);
+      if (at > 0) {
         routeQueue.splice(at, 1);
         routeQueue.unshift(key);
       }
       return;
     }
+    routeQueued.add(key);
     if (front) routeQueue.unshift(key);
     else routeQueue.push(key);
     pumpRoutes();
@@ -637,8 +742,7 @@
   }
 
   function warmVisible() {
-    const zoom = VB_W / Math.max(viewBox.w, 1);
-    const limit = zoom < 6 ? 40 : 80;
+    const limit = routeDraw == null ? Infinity : routeDraw;
     const padX = viewBox.w * 0.08;
     const padY = viewBox.h * 0.08;
     const x0 = viewBox.x - padX;
@@ -718,63 +822,20 @@
     views.forEach(syncPick);
   }
 
-  function pxToUser(svg, px) {
-    const width = svg.getBoundingClientRect().width;
-    const span = Math.max(viewBox.w, 1);
-    if (width < 8) return (px / 400) * span;
-    return (px / width) * span;
-  }
-
-  function iconScale(svg) {
-    const zoom = VB_W / Math.max(viewBox.w, 1);
-    const px = Math.min(26, 4.2 * Math.pow(zoom, 0.62));
-    return pxToUser(svg, px) / 2.2;
-  }
-
-  function ensurePlane(view, id) {
-    const found = view.pool.get(id);
-    if (found) return found;
-    const g = el('g');
-    g.setAttribute('class', 'flight-plane');
-    g.dataset.icao = id;
-    const hit = el('circle');
-    hit.setAttribute('fill', 'transparent');
-    const mark = el('g');
-    const pick = el('rect');
-    pick.setAttribute('class', 'flight-pick');
-    pick.setAttribute('x', '-1.35');
-    pick.setAttribute('y', '-1.6');
-    pick.setAttribute('width', '2.7');
-    pick.setAttribute('height', '3.1');
-    const shape = el('path');
-    shape.setAttribute('d', PLANE);
-    mark.append(pick, shape);
-    g.append(hit, mark);
-    if (view.page) {
-      g.addEventListener('pointerdown', (event) => {
-        const plane = latest.get(id);
-        if (plane) askRoute(plane.callsign);
-      });
-      g.addEventListener('click', (event) => {
-        event.stopPropagation();
-        selectPlane(id);
-      });
-    }
-    view.craft.appendChild(g);
-    const node = { g, hit, mark };
-    view.pool.set(id, node);
-    return node;
-  }
-
   function syncPick(view) {
     view.pool.forEach((node, id) => {
       node.g.classList.toggle('is-on', id === selected);
     });
   }
 
+  function trailOn(id) {
+    return latest.size <= 800 || id === selected;
+  }
+
   function drawTrails(view) {
     const live = new Set();
     tracks.forEach((track, id) => {
+      if (!trailOn(id)) return;
       live.add(id);
       let group = view.trails.get(id);
       if (!group) {
@@ -811,10 +872,11 @@
         line.setAttribute('y2', b[1].toFixed(1));
         line.setAttribute('stroke-opacity', (0.18 + item[2] * 0.72).toFixed(2));
       });
-      if (!group.querySelector('[data-lead]')) {
+      if (!group._lead) {
         const lead = el('line');
         lead.setAttribute('data-lead', '1');
         lead.setAttribute('stroke-opacity', '0');
+        group._lead = lead;
         group.appendChild(lead);
       }
     });
@@ -825,12 +887,22 @@
     });
   }
 
+  function viewOn(view) {
+    if (view.page) {
+      const page = document.getElementById('app-flight');
+      return !!(page && page.classList.contains('is-on'));
+    }
+    const layer = document.getElementById('layer-status');
+    return !!(layer && layer.classList.contains('is-on'));
+  }
+
   function drawLead(view, id, at) {
     const group = view.trails.get(id);
     const track = tracks.get(id);
     if (!group || !track) return;
-    const lead = group.querySelector('[data-lead]');
+    const lead = group._lead || group.querySelector('[data-lead]');
     if (!lead) return;
+    group._lead = lead;
     const seg = track.segs[track.segs.length - 1];
     const last = seg && seg[seg.length - 1];
     if (!last || !at || crosses(last.lon, at.lon)) {
@@ -850,31 +922,25 @@
     const now = performance.now();
     const wall = Date.now();
     const removed = dropStale(wall, new Set(latest.keys()));
-    if (removed) views.forEach(drawTrails);
+    if (removed) views.forEach((view) => { if (viewOn(view)) drawTrails(view); });
     views.forEach((view) => {
-      const scale = iconScale(view.svg).toFixed(2);
-      const hitR = pxToUser(view.svg, 11).toFixed(1);
-      const live = new Set();
-      latest.forEach((_plane, id) => {
-        const at = currentPose(id, now);
-        if (!at) return;
-        live.add(id);
-        const node = ensurePlane(view, id);
-        const xy = project(at.lon, at.lat);
-        node.g.setAttribute(
-          'transform',
-          `translate(${xy[0].toFixed(1)} ${xy[1].toFixed(1)}) rotate(${at.heading.toFixed(1)})`,
-        );
-        node.mark.setAttribute('transform', `scale(${scale})`);
-        node.hit.setAttribute('r', hitR);
-        node.g.classList.toggle('is-on', id === selected);
-        drawLead(view, id, at);
-      });
-      view.pool.forEach((node, id) => {
-        if (live.has(id)) return;
-        node.g.remove();
-        view.pool.delete(id);
-      });
+      if (!viewOn(view)) {
+        view.wasOn = false;
+        return;
+      }
+      if (!view.wasOn) {
+        view.wasOn = true;
+        drawTrails(view);
+      }
+      drawCraft(view, now);
+      if (selected && trailOn(selected)) drawLead(view, selected, currentPose(selected, now));
+      if (latest.size <= 800) {
+        latest.forEach((_plane, id) => {
+          if (id === selected) return;
+          const at = currentPose(id, now);
+          if (at) drawLead(view, id, at);
+        });
+      }
     });
     placeTag();
     paintChrome(false);
@@ -885,14 +951,33 @@
     raf = requestAnimationFrame(drawPlanes);
   }
 
+  let pollTimer = 0;
+
+  function armPoll() {
+    clearTimeout(pollTimer);
+    const has = payload && payload.aircraft && payload.aircraft.length;
+    const wait = !has ? 1200 : (payload.stale ? 3000 : POLL_MS);
+    pollTimer = setTimeout(poll, wait);
+  }
+
   async function poll() {
-    if (busy) return;
+    clearTimeout(pollTimer);
+    if (busy) {
+      armPoll();
+      return;
+    }
     const crt = document.getElementById('crt-monitor');
-    if (crt && !crt.classList.contains('is-on')) return;
-    if (document.visibilityState === 'hidden') return;
+    if (crt && !crt.classList.contains('is-on')) {
+      armPoll();
+      return;
+    }
+    if (document.visibilityState === 'hidden') {
+      armPoll();
+      return;
+    }
     busy = true;
     const ctrl = new AbortController();
-    const kill = setTimeout(() => ctrl.abort(), 25000);
+    const kill = setTimeout(() => ctrl.abort(), 8000);
     try {
       const res = await fetch('/api/flights', { signal: ctrl.signal });
       if (!res.ok) throw new Error(String(res.status));
@@ -902,6 +987,7 @@
     } finally {
       clearTimeout(kill);
       busy = false;
+      armPoll();
     }
   }
 
@@ -1010,10 +1096,7 @@
     let drag = null;
 
     function planeAt(clientX, clientY) {
-      const hit = document.elementFromPoint(clientX, clientY);
-      const plane = hit && hit.closest ? hit.closest('.flight-plane') : null;
-      if (!plane || !homeSvg.contains(plane)) return null;
-      return latest.get(plane.dataset.icao || '') || null;
+      return planeAtPoint(homeSvg, clientX, clientY);
     }
 
     function primeRoute(clientX, clientY, immediate) {
@@ -1036,9 +1119,14 @@
       primeRoute(event.clientX, event.clientY, true);
     });
 
+    let hoverAt = 0;
     homeStage.addEventListener('pointermove', (event) => {
       if (!drag) {
-        primeRoute(event.clientX, event.clientY, false);
+        const now = performance.now();
+        if (now - hoverAt > 80) {
+          hoverAt = now;
+          primeRoute(event.clientX, event.clientY, false);
+        }
         return;
       }
       const dx = event.clientX - drag.x;
@@ -1061,9 +1149,9 @@
       homeStage.classList.remove('is-panning');
       if (moved) return;
       const hit = document.elementFromPoint(event.clientX, event.clientY);
-      const plane = hit && hit.closest ? hit.closest('.flight-plane') : null;
       if (hit && hit.closest && hit.closest('.flight-tag')) return;
-      if (plane && homeSvg.contains(plane)) selectPlane(plane.dataset.icao || '');
+      const plane = planeAt(event.clientX, event.clientY);
+      if (plane) selectPlane(plane.icao24 || '');
       else hideTag();
     }
 
@@ -1093,10 +1181,15 @@
   });
 
   if (pageStage) {
-    pageStage.addEventListener('click', () => {
+    pageStage.addEventListener('click', (event) => {
+      const plane = planeAtPoint(pageSvg, event.clientX, event.clientY);
+      if (plane) {
+        askRoute(plane.callsign);
+        selectPlane(plane.icao24 || '');
+        return;
+      }
       selected = '';
       paintDetail();
-      views.forEach(syncPick);
     });
   }
 
@@ -1116,10 +1209,125 @@
   }
   requestAnimationFrame(refreshMe);
 
+  function readLimit(el) {
+    const raw = String(el && el.value || '').trim();
+    if (!raw) return null;
+    const number = Number(raw);
+    if (!Number.isFinite(number) || number <= 0) return null;
+    return Math.round(number);
+  }
+
+  function paintLimits(data, force) {
+    if (!data) return;
+    Object.entries(limitEls).forEach(([key, el]) => {
+      if (!el) return;
+      if (!force && document.activeElement === el) return;
+      const value = data[key];
+      el.value = value == null || value === '' ? '' : String(value);
+    });
+    routeDraw = data.route_draw == null || data.route_draw === '' ? null : Number(data.route_draw);
+    if (!Number.isFinite(routeDraw) || routeDraw <= 0) routeDraw = null;
+  }
+
+  function collectLimits() {
+    return {
+      max_draw: readLimit(limitEls.max_draw),
+      warm_max: readLimit(limitEls.warm_max),
+      route_draw: readLimit(limitEls.route_draw),
+    };
+  }
+
+  function saveLimits() {
+    const seq = ++limitSeq;
+    const body = collectLimits();
+    routeDraw = body.route_draw;
+    scheduleWarm();
+    fetch('/api/flights/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        return res.json();
+      })
+      .then((data) => {
+        if (seq !== limitSeq) return;
+        paintLimits(data, false);
+        scheduleWarm();
+        poll();
+      })
+      .catch(() => {});
+  }
+
+  function queueLimits() {
+    limitSeq += 1;
+    clearTimeout(limitTimer);
+    limitTimer = setTimeout(saveLimits, 400);
+  }
+
+  function bumpLimit(key, dir) {
+    const el = limitEls[key];
+    if (!el) return;
+    const step = LIMIT_STEP[key] || 1;
+    const raw = el.value.trim();
+    if (!raw) {
+      if (dir > 0) el.value = String(LIMIT_FALLBACK[key] || step);
+      else return;
+    } else {
+      const next = Number(raw) + dir * step;
+      el.value = next <= 0 ? '' : String(next);
+    }
+    clearTimeout(limitTimer);
+    saveLimits();
+  }
+
+  Object.entries(limitEls).forEach(([key, el]) => {
+    if (!el) return;
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/\D/g, '').slice(0, 6);
+      queueLimits();
+    });
+    el.addEventListener('change', () => {
+      clearTimeout(limitTimer);
+      saveLimits();
+    });
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      clearTimeout(limitTimer);
+      saveLimits();
+    });
+  });
+
+  document.querySelectorAll('[data-flight-step]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      bumpLimit(btn.dataset.flightStep, Number(btn.dataset.dir) || 0);
+    });
+  });
+
+  document.querySelectorAll('[data-flight-none]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const el = limitEls[btn.dataset.flightNone];
+      if (!el) return;
+      el.value = '';
+      clearTimeout(limitTimer);
+      saveLimits();
+    });
+  });
+
+  fetch('/api/flights/settings')
+    .then((res) => (res.ok ? res.json() : null))
+    .then((data) => {
+      if (!data) return;
+      paintLimits(data, true);
+      scheduleWarm();
+    })
+    .catch(() => {});
+
   loadLand();
   loadBorders();
   loadCities();
   poll();
-  setInterval(poll, POLL_MS);
   raf = requestAnimationFrame(drawPlanes);
 })();

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 
 _lock = threading.Lock()
 _view = {"layer": "status", "app": ""}
@@ -180,21 +180,43 @@ def _rss() -> dict | None:
     }
 
 
-def _earthquake() -> dict | None:
-    from backend.earthquakes import get_earthquakes
-
-    data = get_earthquakes()
-    events = data.get("events") if isinstance(data, dict) else None
-    if not events:
+def _local_time(value) -> str | None:
+    text = str(value or "").strip()
+    if not text:
         return None
-    item = events[0]
-    if not isinstance(item, dict):
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return text[:25]
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    try:
+        return parsed.astimezone().isoformat(timespec="seconds")
+    except (OSError, OverflowError, ValueError):
+        return text[:25]
+
+
+def _earthquake() -> dict | None:
+    from backend.earthquakes import history
+
+    rows = history()
+    if not rows:
+        return None
+    latest = rows[0]
+    recent = []
+    for item in rows:
+        if not isinstance(item, dict):
+            continue
+        recent.append({
+            "magnitude": item.get("magnitude"),
+            "place": _clip(item.get("place"), 80) or None,
+            "time": _local_time(item.get("time")),
+        })
+    if not recent:
         return None
     return {
-        "id": item.get("id"),
-        "magnitude": item.get("magnitude"),
-        "place": _clip(item.get("place"), 80) or None,
-        "time": item.get("time"),
+        "id": latest.get("id"),
+        "recent": recent,
     }
 
 
