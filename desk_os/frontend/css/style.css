@@ -1,27 +1,55 @@
-/* Desk OS — E Ink Carta：平铺冷灰纸、中性颗粒、硬边字形
-   纸色故意少黄：系统护眼再偏暖时落成纸白，而不是在米黄上叠成赭石。 */
+/* Desk OS 壳层：布局、层级、交互。
+   颜色和纹理在 css/skins/。新功能只用变量，不要写死十六进制；
+   需要新角色时在下面加一行派生（var(--已有token)），皮肤想特殊再去覆盖。 */
 
 :root {
-  --bezel: #121210;
   --bezel-ring: clamp(20px, 4vmin, 48px);
   --power-bar: clamp(32px, 5vmin, 40px);
   --home-bar: 36px;
-  --screen: #e2e3de;
-  --fg-time: #1b1c19;
-  --fg: #2c2e2a;
-  --fg-mid: #484a45;
-  --fg-dim: #6a6c66;
-  --fg-bar: #282a26;
-  --fg-bar-empty: #c4c6bf;
-  --line: #b3b5ae;
-  --dog-ink: #484a45;
-  --dog-faint: #989a93;
-  --dog-deep: #1b1c19;
-  --font: 'Courier New', Consolas, monospace;
-  --cursor-cross: url('/assets/cursor-cross.png?v=2') 16 16, crosshair;
-  --cursor-block: url('/assets/cursor-block.png?v=2') 16 16, text;
-  --eink-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.42' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
-  --eink-speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.16 0 0 0 0 0.15 0 0 0 0.62 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --screen-radius: 22px;
+
+  --ink: var(--fg-time);
+  --paper: var(--screen);
+  --ink-dim: var(--fg-dim);
+  --screen-edge: var(--fg);
+  --screen-inset: transparent;
+  --off-screen: var(--bezel);
+  --off-edge: var(--bezel);
+  --off-inset: transparent;
+  --key-fg: var(--fg-dim);
+  --key-bg: var(--bezel);
+  --key-edge: var(--fg-dim);
+  --key-hi: transparent;
+  --key-fg-hot: var(--paper);
+  --key-edge-hot: var(--fg-mid);
+  --key-bg-down: var(--ink);
+  --key-shade: transparent;
+  --key-on-fg: var(--paper);
+  --key-on-bg: var(--fg);
+  --key-on-shade: transparent;
+  --home-bg: var(--bezel);
+  --home-edge: var(--fg-dim);
+  --home-hi: transparent;
+  --home-mark: var(--fg-mid);
+  --home-bg-down: var(--ink);
+  --icon-hi: transparent;
+  --fault-scan: color-mix(in srgb, var(--ink) 22%, transparent);
+  --land: var(--fg-dim);
+  --map-line: var(--fg-mid);
+  --year-weekend: var(--line);
+  --year-bar: var(--fg-dim);
+  --grain: none;
+  --grain-opacity: 0;
+  --grain-blend: normal;
+  --grain-size: auto;
+  --speck: none;
+  --speck-opacity: 0;
+  --speck-blend: normal;
+  --speck-size: auto;
+  --flash-0: var(--ink);
+  --flash-1: var(--paper);
+  --flash-2: var(--fg);
+  --flash-3: var(--screen);
 }
 
 *,
@@ -53,9 +81,6 @@ html, body {
   font-size: clamp(12px, 1.6vmin, 16px);
   font-weight: 400;
   line-height: 1.5;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
-  font-smooth: never;
   text-rendering: geometricPrecision;
   user-select: none;
 }
@@ -94,7 +119,8 @@ html, body,
 .task-drop,
 .task-drop-ask button,
 .task-foot .task-drop,
-.type-set button {
+.type-set button,
+.skin-set button {
   cursor: var(--cursor-block) !important;
 }
 
@@ -164,9 +190,9 @@ html, body,
   justify-content: center;
   overflow: hidden;
   background: var(--screen);
-  border: 1px solid #323330;
-  border-radius: 22px;
-  box-shadow: inset 0 0 0 1px rgba(32, 34, 32, 0.16);
+  border: 1px solid var(--screen-edge);
+  border-radius: var(--screen-radius);
+  box-shadow: inset 0 0 0 1px var(--screen-inset);
   transition: background 0.12s step-end;
 }
 
@@ -477,9 +503,9 @@ body[data-mode="windowed"] .pixel-dog canvas {
 
 /* 关机：粒子沉底，不是 OLED 黑 */
 .crt.is-off .crt__screen {
-  background: #141310;
-  border-color: #22211e;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+  background: var(--off-screen);
+  border-color: var(--off-edge);
+  box-shadow: inset 0 0 0 1px var(--off-inset);
 }
 
 .crt.is-off .crt-content,
@@ -487,17 +513,17 @@ body[data-mode="windowed"] .pixel-dog canvas {
   visibility: hidden;
 }
 
-/* 纸纤维：粗纹用柔光铺不平，细粒用正片叠底。都是灰，护眼偏黄时跟着纸一起暖 */
+/* 屏幕纹理：结构在这里，图像和混合模式由皮肤变量决定 */
 .crt.is-on .crt__screen::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 4;
   pointer-events: none;
-  opacity: 0.55;
-  mix-blend-mode: soft-light;
-  background-image: var(--eink-grain);
-  background-size: 280px 280px;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  background-image: var(--grain);
+  background-size: var(--grain-size);
 }
 
 .crt.is-on .crt__screen::after {
@@ -506,10 +532,10 @@ body[data-mode="windowed"] .pixel-dog canvas {
   inset: 0;
   z-index: 5;
   pointer-events: none;
-  opacity: 0.55;
-  mix-blend-mode: multiply;
-  background-image: var(--eink-speck);
-  background-size: 120px 120px;
+  opacity: var(--speck-opacity);
+  mix-blend-mode: var(--speck-blend);
+  background-image: var(--speck);
+  background-size: var(--speck-size);
 }
 
 .crt.is-off .crt__screen::before,
@@ -524,7 +550,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
   z-index: 8;
   pointer-events: none;
   opacity: 0;
-  background: #141310;
+  background: var(--flash-0);
 }
 
 .eink-flash.is-on {
@@ -574,7 +600,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
 .sit-fault__row {
   flex: 0 0 auto;
   margin: 0;
-  color: #141310;
+  color: var(--ink);
   font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
   font-weight: 600;
   line-height: 1.05;
@@ -585,12 +611,12 @@ body[data-mode="windowed"] .pixel-dog canvas {
 }
 
 .sit-fault__row.is-inv {
-  background: #141310;
+  background: var(--ink);
   color: var(--screen);
 }
 
 .sit-fault__row.is-dim {
-  color: #7c7e78;
+  color: var(--ink-dim);
 }
 
 .sit-fault__giants {
@@ -601,7 +627,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
 .sit-fault__giant {
   position: absolute;
   left: -8%;
-  color: #141310;
+  color: var(--ink);
   font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
   font-weight: 700;
   font-size: clamp(40px, 7.4vw, 108px);
@@ -613,7 +639,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
 }
 
 .sit-fault__giant.is-inv {
-  background: #141310;
+  background: var(--ink);
   color: var(--screen);
   padding: 0.04em 0 0.08em;
 }
@@ -628,7 +654,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
   left: -8%;
   width: 116%;
   height: 8%;
-  background: #f4f5f0;
+  background: var(--paper);
   mix-blend-mode: difference;
   animation: sit-slice 0.38s steps(3, end) infinite;
 }
@@ -643,7 +669,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
 .sit-fault__rip i:nth-child(8) { top: 93%; height: 1.6%; animation-duration: 0.22s; animation-delay: -0.06s; }
 
 .sit-fault__flash {
-  background: #f4f5f0;
+  background: var(--paper);
   mix-blend-mode: difference;
   opacity: 0;
   animation: sit-invert 0.86s steps(1, end) infinite;
@@ -658,7 +684,7 @@ body[data-mode="windowed"] .pixel-dog canvas {
   background: repeating-linear-gradient(
     to bottom,
     transparent 0 2px,
-    rgba(20, 19, 16, 0.22) 2px 3px
+    var(--fault-scan) 2px 3px
   );
   animation: sit-scan 0.24s steps(4, end) infinite;
 }
@@ -709,19 +735,19 @@ body[data-mode="windowed"] .pixel-dog canvas {
 @keyframes eink-waveform {
   0% {
     opacity: 1;
-    background: #141310;
+    background: var(--flash-0);
   }
   28% {
     opacity: 1;
-    background: #f3f4f0;
+    background: var(--flash-1);
   }
   55% {
     opacity: 0.62;
-    background: #2a2824;
+    background: var(--flash-2);
   }
   78% {
     opacity: 0.22;
-    background: var(--screen);
+    background: var(--flash-3);
   }
   100% {
     opacity: 0;
@@ -739,21 +765,21 @@ body[data-mode="windowed"] .pixel-dog canvas {
   font-family: var(--font);
   font-size: 10px;
   letter-spacing: 0.12em;
-  color: #ccc;
-  background: #2a2a28;
-  border: 1px solid #666;
-  box-shadow: inset 0 1px 0 #484846;
+  color: var(--key-fg);
+  background: var(--key-bg);
+  border: 1px solid var(--key-edge);
+  box-shadow: inset 0 1px 0 var(--key-hi);
   cursor: pointer !important;
 }
 
 .crt__key:hover {
-  color: #eee;
-  border-color: #888;
+  color: var(--key-fg-hot);
+  border-color: var(--key-edge-hot);
 }
 
 .crt__key:active {
-  background: #1a1a18;
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.4);
+  background: var(--key-bg-down);
+  box-shadow: inset 0 2px 3px var(--key-shade);
 }
 
 .crt__power {
@@ -771,9 +797,9 @@ body[data-mode="windowed"] .pixel-dog canvas {
 }
 
 .crt__desk[aria-pressed="true"] {
-  color: #eee;
-  background: #1f1f1c;
-  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.45);
+  color: var(--key-on-fg);
+  background: var(--key-on-bg);
+  box-shadow: inset 0 2px 3px var(--key-on-shade);
 }
 
 /* ── 终端内容 ── */
@@ -1882,6 +1908,41 @@ body[data-mode="windowed"] .terminal__info {
   z-index: 2;
 }
 
+#layer-desk.is-on {
+  flex-direction: column;
+}
+
+.skin-set {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+  font-family: var(--font);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--fg-dim);
+}
+
+.skin-set[hidden] {
+  display: none;
+}
+
+.skin-set button {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  opacity: 0.45;
+}
+
+.skin-set button.is-on {
+  opacity: 1;
+  color: var(--fg);
+}
+
 #layer-app.is-on {
   align-items: stretch;
 }
@@ -1951,7 +2012,7 @@ body[data-mode="windowed"] .terminal__info {
   background: var(--fg);
   border: 1px solid var(--dog-deep);
   border-radius: 22%;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 var(--icon-hi);
   transition: transform 0.08s steps(2), background 0.08s steps(2);
 }
 
@@ -2549,10 +2610,10 @@ body[data-mode="windowed"] .terminal__info {
   padding: 0;
   align-items: center;
   justify-content: center;
-  background: #1a1a18;
-  border: 1px solid #5a5a56;
+  background: var(--home-bg);
+  border: 1px solid var(--home-edge);
   border-radius: 50%;
-  box-shadow: inset 0 1px 0 #323230;
+  box-shadow: inset 0 1px 0 var(--home-hi);
 }
 
 .crt.is-spring .crt__home {
@@ -2566,12 +2627,12 @@ body[data-mode="windowed"] .terminal__info {
 .crt__home-mark {
   width: 10px;
   height: 10px;
-  border: 1.5px solid #8a8a84;
+  border: 1.5px solid var(--home-mark);
   border-radius: 2.5px;
 }
 
 .crt__home:active {
-  background: #111;
+  background: var(--home-bg-down);
 }
 
 /* ── 1536×2048 纵向：锁屏时钟 + 双列仪表 + 阅读栏 ──

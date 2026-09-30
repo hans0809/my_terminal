@@ -4,12 +4,7 @@
  */
 
 (function () {
-  const CURSOR_CROSS = "url('/assets/cursor-cross.png?v=2') 16 16, crosshair";
-  const CURSOR_BLOCK = "url('/assets/cursor-block.png?v=2') 16 16, text";
   const BOOT_GAP = 92;
-
-  document.documentElement.style.cursor = CURSOR_CROSS;
-  document.body.style.cursor = CURSOR_CROSS;
 
   const deskBtn = document.getElementById('desk-btn');
   const crtMonitor = document.getElementById('crt-monitor');

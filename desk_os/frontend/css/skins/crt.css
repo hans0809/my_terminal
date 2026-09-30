@@ -1,0 +1,81 @@
+/* CRT — 当前这套冷灰纸终端。
+   壳层（style.css 和各功能 css）只排版、只读变量。
+   换肤改这里的值；新功能不要把颜色写进功能 css。
+
+   新增一套皮肤：
+   1. 复制本文件为 css/skins/<id>.css
+   2. 两处选择器都改成 html[data-skin="<id>"]（:root 那段只留在本文件，作为缺省）
+   3. index.html 增加对应 link，放在 crt.css 之后
+   4. js/skin.js 的 SKINS 加一项 { id, name }
+   第二段可以整段删掉，没写的变量会从必填色推出来。 */
+
+:root,
+html[data-skin="crt"] {
+  --bezel: #121210;
+  --screen: #e2e3de;
+  --fg-time: #1b1c19;
+  --fg: #2c2e2a;
+  --fg-mid: #484a45;
+  --fg-dim: #6a6c66;
+  --fg-bar: #282a26;
+  --fg-bar-empty: #c4c6bf;
+  --line: #b3b5ae;
+  --dog-ink: #484a45;
+  --dog-faint: #989a93;
+  --dog-deep: #1b1c19;
+  --font: "Courier New", Consolas, monospace;
+  --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
+  --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
+}
+
+html[data-skin="crt"],
+html[data-skin="crt"] body {
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  font-smooth: never;
+}
+
+html[data-skin="crt"] {
+  --ink: #141310;
+  --paper: #f4f5f0;
+  --ink-dim: #7c7e78;
+  --screen-edge: #323330;
+  --screen-inset: rgba(32, 34, 32, 0.16);
+  --off-screen: #141310;
+  --off-edge: #22211e;
+  --off-inset: rgba(0, 0, 0, 0.45);
+  --key-fg: #ccc;
+  --key-bg: #2a2a28;
+  --key-edge: #666;
+  --key-hi: #484846;
+  --key-fg-hot: #eee;
+  --key-edge-hot: #888;
+  --key-bg-down: #1a1a18;
+  --key-shade: rgba(0, 0, 0, 0.4);
+  --key-on-fg: #eee;
+  --key-on-bg: #1f1f1c;
+  --key-on-shade: rgba(0, 0, 0, 0.45);
+  --home-bg: #1a1a18;
+  --home-edge: #5a5a56;
+  --home-hi: #323230;
+  --home-mark: #8a8a84;
+  --home-bg-down: #111;
+  --icon-hi: rgba(255, 255, 255, 0.06);
+  --fault-scan: rgba(20, 19, 16, 0.22);
+  --land: #8d8f88;
+  --map-line: #4a4c47;
+  --year-weekend: #a4a69f;
+  --year-bar: #8d8f88;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.42' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='linear' slope='0' intercept='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  --grain-opacity: 0.55;
+  --grain-blend: soft-light;
+  --grain-size: 280px 280px;
+  --speck: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.35' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.16 0 0 0 0 0.15 0 0 0 0.62 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23s)'/%3E%3C/svg%3E");
+  --speck-opacity: 0.55;
+  --speck-blend: multiply;
+  --speck-size: 120px 120px;
+  --flash-0: #141310;
+  --flash-1: #f3f4f0;
+  --flash-2: #2a2824;
+  --flash-3: var(--screen);
+}

@@ -1,17 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-skin="crt">
 <head>
   <meta charset="UTF-8">
+  <script>
+    try {
+      var savedSkin = localStorage.getItem('desk-skin');
+      if (savedSkin && /^[a-z0-9-]{1,32}$/.test(savedSkin)) {
+        document.documentElement.dataset.skin = savedSkin;
+      }
+    } catch (err) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Desk OS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Noto+Serif+SC:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=102">
+  <link rel="stylesheet" href="/css/style.css?v=103">
   <link rel="stylesheet" href="/css/flow.css?v=16">
-  <link rel="stylesheet" href="/css/year.css?v=20">
-  <link rel="stylesheet" href="/css/flight.css?v=15">
+  <link rel="stylesheet" href="/css/year.css?v=21">
+  <link rel="stylesheet" href="/css/flight.css?v=16">
   <link rel="stylesheet" href="/css/earth.css?v=6">
+  <link rel="stylesheet" href="/css/skins/crt.css?v=1">
 </head>
 <body data-mode="windowed" data-layer="status">
   <div id="view-dashboard" class="view active">
@@ -284,6 +293,7 @@
                 <span class="app-name">FLIGHT</span>
               </button>
             </div>
+            <nav id="skin-set" class="skin-set" aria-label="皮肤" hidden></nav>
           </div>
 
           <div id="layer-app" class="layer">
@@ -674,7 +684,8 @@
     </div>
   </div>
 
-  <script src="/js/app.js?v=18"></script>
+  <script src="/js/skin.js?v=1"></script>
+  <script src="/js/app.js?v=19"></script>
   <script src="/js/desk.js?v=20"></script>
   <script src="/js/task.js?v=1"></script>
   <script src="/js/year.js?v=6"></script>

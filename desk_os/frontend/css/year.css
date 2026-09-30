@@ -81,7 +81,7 @@
 }
 
 .year-cell.is-future.is-weekend {
-  background: #a4a69f;
+  background: var(--year-weekend);
   box-shadow: none;
 }
 
@@ -143,7 +143,7 @@
 
 .year-bar {
   height: 4px;
-  background: #8d8f88;
+  background: var(--year-bar);
 }
 
 .year-bar span {

@@ -140,7 +140,7 @@
 }
 
 .flight-land {
-  color: #8d8f88;
+  color: var(--land);
   pointer-events: none;
 }
 
@@ -149,7 +149,7 @@
 }
 
 .flight-borders {
-  color: #4a4c47;
+  color: var(--map-line);
   pointer-events: none;
 }
 
