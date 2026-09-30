@@ -23,7 +23,9 @@ html[data-skin="crt"] {
   --dog-ink: #484a45;
   --dog-faint: #989a93;
   --dog-deep: #1b1c19;
-  --font: "Courier New", Consolas, monospace;
+  --font: "Courier New", "SimHei", "Heiti SC", "STHeiti", "黑体", monospace;
+  --voice: "Courier New", "SimHei", "Heiti SC", "STHeiti", "黑体", monospace;
+  --weight: 700;
   --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
   --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
 }

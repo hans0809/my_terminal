@@ -166,7 +166,7 @@
 }
 
 .flight-cities text {
-  font-family: "Noto Serif SC", "Microsoft YaHei", "SimSun", sans-serif;
+  font-family: var(--font);
   font-weight: 500;
   fill: currentColor;
 }
@@ -189,7 +189,7 @@
 }
 
 .flight-me text {
-  font-family: "Noto Serif SC", "Microsoft YaHei", "SimSun", sans-serif;
+  font-family: var(--font);
   font-weight: 600;
   fill: currentColor;
 }
@@ -346,9 +346,8 @@
   .flight-page__meta,
   .flight-detail {
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .flight__title,

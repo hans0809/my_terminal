@@ -254,8 +254,8 @@
   .year-term__hou-idx,
   .year-term__hou-name,
   #year-term-next {
-    font-family: 'Noto Serif SC', 'Source Serif 4', serif;
-    font-weight: 500;
+    font-family: var(--voice);
+    font-weight: var(--weight);
     color: var(--fg-time);
     letter-spacing: 0.12em;
   }
@@ -263,10 +263,9 @@
   .year-term__next {
     margin-left: auto;
     font-family: var(--font);
-    font-weight: 400;
+    font-weight: var(--weight);
     letter-spacing: 0.06em;
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   #year-term-next-date {
@@ -278,8 +277,7 @@
   .year-count,
   .year-season,
   .year-row__label {
-    -webkit-font-smoothing: antialiased;
-    font-weight: 400;
+    font-weight: var(--weight);
   }
 
   .year-meta,

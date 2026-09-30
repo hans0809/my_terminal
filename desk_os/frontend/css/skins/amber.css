@@ -1,4 +1,21 @@
-/* 琥珀 — 深褐黑管子上的暖光。字是黄的，壳是橄榄金属。 */
+/* 琥珀 — 深褐黑管子上的暖光。字是黄的，壳是橄榄金属。
+   只这一套换字体：打字机等宽写正文，OCR-A 写读数，中文落到宋体。 */
+
+@font-face {
+  font-family: "Courier Prime";
+  src: url("/assets/fonts/CourierPrime-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Desk OCR-A";
+  src: url("/assets/fonts/OCRA.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 html[data-skin="amber"] {
   --bezel: #14110c;
@@ -13,7 +30,10 @@ html[data-skin="amber"] {
   --dog-ink: #e0a44a;
   --dog-faint: #6e4a22;
   --dog-deep: #ffe6b0;
-  --font: "Courier New", "Sarasa Mono SC", Consolas, monospace;
+  --font: "Courier Prime", "Courier New", "SimSun", "NSimSun", "Songti SC", serif;
+  --voice: "Courier Prime", "Courier New", "SimSun", "NSimSun", "Songti SC", serif;
+  --readout: "Desk OCR-A", "Courier Prime", "Courier New", monospace;
+  --weight: 400;
   --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
   --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
 }
@@ -26,7 +46,41 @@ html[data-skin="amber"] body {
 }
 
 html[data-skin="amber"] .crt.is-on {
-  text-shadow: 0 0 1px rgba(255, 190, 80, 0.55);
+  text-shadow: 0 0 1px rgba(255, 190, 80, 0.22);
+}
+
+html[data-skin="amber"] .terminal__time,
+html[data-skin="amber"] .terminal__date,
+html[data-skin="amber"] .terminal__sit,
+html[data-skin="amber"] .sky-clock,
+html[data-skin="amber"] .sky-pct,
+html[data-skin="amber"] .term-row__label,
+html[data-skin="amber"] .term-row__val,
+html[data-skin="amber"] .info-row__label,
+html[data-skin="amber"] .info-row__val,
+html[data-skin="amber"] .flight__state,
+html[data-skin="amber"] .flight__stat,
+html[data-skin="amber"] .flight__age,
+html[data-skin="amber"] .earth__stat,
+html[data-skin="amber"] .earth__count,
+html[data-skin="amber"] .year-meta,
+html[data-skin="amber"] .log-row__time,
+html[data-skin="amber"] .desk-npc__state,
+html[data-skin="amber"] .desk-npc__time,
+html[data-skin="amber"] .npc-rec__time {
+  font-family: var(--readout);
+}
+
+html[data-skin="amber"] .term-row__label,
+html[data-skin="amber"] .info-row__label,
+html[data-skin="amber"] .flight__title,
+html[data-skin="amber"] .earth__title {
+  letter-spacing: 0.12em;
+}
+
+html[data-skin="amber"] .desk-npc__say,
+html[data-skin="amber"] .desk-slip__line {
+  letter-spacing: 0.02em;
 }
 
 html[data-skin="amber"] {

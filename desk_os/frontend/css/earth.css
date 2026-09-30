@@ -176,9 +176,8 @@
   .earth__stat,
   .flight__stat {
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .earth__title {

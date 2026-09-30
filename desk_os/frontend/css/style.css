@@ -5,7 +5,9 @@
 :root {
   --bezel-ring: clamp(20px, 4vmin, 48px);
   --power-bar: clamp(32px, 5vmin, 40px);
-  --home-bar: 36px;
+  --home-size: 28px;
+  --home-gap: 8px;
+  --home-bar: calc(var(--home-size) + 2 * var(--home-gap));
   --screen-radius: 22px;
 
   --ink: var(--fg-time);
@@ -40,6 +42,8 @@
   --year-bar: var(--fg-dim);
   --scan-pitch: 3px;
   --scan-line: 1px;
+  --voice: "KaiTi", "STKaiti", "楷体", "SimSun", "Songti SC", serif;
+  --weight: 400;
   --grain: none;
   --grain-opacity: 0;
   --grain-blend: normal;
@@ -81,7 +85,7 @@ html, body {
   color: var(--fg);
   font-family: var(--font);
   font-size: clamp(12px, 1.6vmin, 16px);
-  font-weight: 400;
+  font-weight: var(--weight);
   line-height: 1.5;
   text-rendering: geometricPrecision;
   user-select: none;
@@ -165,6 +169,7 @@ html, body,
   padding: var(--bezel-ring);
   padding-left: max(var(--bezel-ring), var(--power-bar));
   padding-right: max(var(--bezel-ring), var(--power-bar));
+  --home-bar: calc(var(--home-size) + 2 * var(--home-gap));
 }
 
 .crt.is-spring {
@@ -603,13 +608,12 @@ body[data-mode="windowed"] .pixel-dog canvas {
   flex: 0 0 auto;
   margin: 0;
   color: var(--ink);
-  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-family: var(--voice);
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: 0.06em;
   white-space: nowrap;
   animation: sit-crawl 0.36s steps(3, end) infinite;
-  -webkit-font-smoothing: antialiased;
 }
 
 .sit-fault__row.is-inv {
@@ -630,14 +634,13 @@ body[data-mode="windowed"] .pixel-dog canvas {
   position: absolute;
   left: -8%;
   color: var(--ink);
-  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-family: var(--voice);
   font-weight: 700;
   font-size: clamp(40px, 7.4vw, 108px);
   line-height: 1;
   letter-spacing: 0.06em;
   white-space: nowrap;
   animation: sit-crawl 0.42s steps(2, end) infinite;
-  -webkit-font-smoothing: antialiased;
 }
 
 .sit-fault__giant.is-inv {
@@ -821,7 +824,6 @@ body[data-mode="windowed"] .pixel-dog canvas {
 body[data-mode="fullscreen"] .crt {
   --bezel-ring: clamp(24px, 5vmin, 56px);
   --power-bar: clamp(32px, 5vmin, 44px);
-  --home-bar: 42px;
 }
 
 body[data-mode="fullscreen"] .terminal {
@@ -832,7 +834,6 @@ body[data-mode="fullscreen"] .terminal {
 body[data-mode="windowed"] .crt {
   --bezel-ring: 14px;
   --power-bar: 26px;
-  --home-bar: 32px;
 }
 
 body[data-mode="windowed"] .terminal__metrics {
@@ -1200,9 +1201,6 @@ body[data-mode="windowed"] .terminal__info {
   border-top: 1px solid var(--line);
   padding: 14px 0 0;
   color: var(--fg);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-smooth: auto;
 }
 
 .desk-slip__quote {
@@ -1227,9 +1225,9 @@ body[data-mode="windowed"] .terminal__info {
 .desk-slip__line {
   margin: 0;
   color: var(--fg);
-  font-family: "KaiTi", "STKaiti", "楷体", "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-family: var(--voice);
   font-size: clamp(22px, 2.8vmin, 30px);
-  font-weight: 400;
+  font-weight: var(--weight);
   line-height: 1.95;
   letter-spacing: 0.03em;
   text-wrap: pretty;
@@ -1262,9 +1260,9 @@ body[data-mode="windowed"] .terminal__info {
   gap: 0.55em;
   margin: 0;
   color: var(--fg-dim);
-  font-family: "KaiTi", "STKaiti", "楷体", "Noto Serif SC", "Songti SC", serif;
+  font-family: var(--voice);
   font-size: 15px;
-  font-weight: 400;
+  font-weight: var(--weight);
   letter-spacing: 0.18em;
 }
 
@@ -1406,9 +1404,9 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   padding: 0;
   color: var(--fg-time);
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   font-size: 1em;
-  font-weight: 500;
+  font-weight: var(--weight);
   line-height: 1.55;
   letter-spacing: 0.01em;
   white-space: pre-wrap;
@@ -1423,7 +1421,7 @@ body[data-mode="windowed"] .terminal__info {
 
 .desk-npc__lines .is-user .desk-npc__say {
   color: var(--fg);
-  font-weight: 400;
+  font-weight: var(--weight);
 }
 
 .desk-npc__talk input {
@@ -1432,7 +1430,7 @@ body[data-mode="windowed"] .terminal__info {
   min-height: 1.6em;
   padding: 2px 0 4px;
   color: var(--fg);
-  font-weight: 400;
+  font-weight: var(--weight);
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--line);
@@ -1550,7 +1548,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   padding: 0;
   color: var(--fg);
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   font-size: clamp(16px, 2.2vmin, 22px);
   line-height: 1.4;
   outline: none;
@@ -1616,7 +1614,7 @@ body[data-mode="windowed"] .terminal__info {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   font-size: calc(clamp(16px, 2.2vmin, 22px) * var(--type-scale, 1));
   color: var(--fg-time);
 }
@@ -1658,7 +1656,7 @@ body[data-mode="windowed"] .terminal__info {
   width: 100%;
   max-width: none;
   margin: 0;
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   font-size: calc(clamp(16px, 2.2vmin, 22px) * var(--type-scale, 1));
   line-height: 1.45;
   color: var(--fg-time);
@@ -1745,7 +1743,7 @@ body[data-mode="windowed"] .terminal__info {
 .slip-log__text {
   min-width: 0;
   color: var(--fg);
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   line-height: 1.45;
 }
 
@@ -1961,11 +1959,11 @@ body[data-mode="windowed"] .terminal__info {
 }
 
 #layer-app[data-face="mono"] {
-  --read-font: "Courier New", Consolas, monospace;
+  --read-font: "Courier New", "SimSun", "NSimSun", monospace;
 }
 
 #layer-app[data-face="serif"] {
-  --read-font: "Source Serif 4", "Noto Serif SC", "Songti SC", Georgia, serif;
+  --read-font: "KaiTi", "STKaiti", "楷体", "SimSun", serif;
 }
 
 #layer-app[data-face="sans"] {
@@ -2172,7 +2170,7 @@ body[data-mode="windowed"] .terminal__info {
   background: transparent;
   padding: 0;
   color: var(--fg);
-  font-family: "Noto Serif SC", "Source Serif 4", serif;
+  font-family: var(--voice);
   font-size: calc(clamp(15px, 2vmin, 18px) * var(--type-scale, 1));
   line-height: 1.55;
   outline: none;
@@ -2286,7 +2284,7 @@ body[data-mode="windowed"] .terminal__info {
   border-bottom: 1px solid var(--line);
   font-family: var(--font);
   font-size: calc(11px * var(--type-scale));
-  font-weight: 400;
+  font-weight: var(--weight);
   letter-spacing: 0.14em;
   color: var(--fg);
   flex-shrink: 0;
@@ -2614,8 +2612,8 @@ body[data-mode="windowed"] .terminal__info {
   bottom: calc(max(var(--bezel-ring), var(--home-bar)) / 2);
   transform: translate(-50%, 50%);
   z-index: 100;
-  width: 28px;
-  height: 28px;
+  width: var(--home-size);
+  height: var(--home-size);
   padding: 0;
   align-items: center;
   justify-content: center;
@@ -2653,7 +2651,7 @@ body[data-mode="windowed"] .terminal__info {
   body[data-mode="windowed"] .crt {
     --bezel-ring: 22px;
     --power-bar: 42px;
-    --home-bar: 36px;
+    --home-size: 40px;
   }
 
   .crt__key {
@@ -2661,11 +2659,6 @@ body[data-mode="windowed"] .terminal__info {
     height: 22px;
     padding: 0 8px;
     font-size: 12px;
-  }
-
-  .crt__home {
-    width: 40px;
-    height: 40px;
   }
 
   .crt__home-mark {
@@ -2733,10 +2726,9 @@ body[data-mode="windowed"] .terminal__info {
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     letter-spacing: 0.08em;
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .terminal__sit.is-soon,
@@ -2747,21 +2739,19 @@ body[data-mode="windowed"] .terminal__info {
   .terminal__date {
     grid-area: date;
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     letter-spacing: 0.2em;
-    -webkit-font-smoothing: antialiased;
   }
 
   .terminal__time {
     grid-area: time;
     font-size: clamp(120px, 12vh, 164px);
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     letter-spacing: 0.04em;
     line-height: 0.92;
     margin-top: 6px;
-    -webkit-font-smoothing: antialiased;
   }
 
   .terminal__weather {
@@ -2769,9 +2759,8 @@ body[data-mode="windowed"] .terminal__info {
     justify-self: end;
     margin-top: 0;
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
     letter-spacing: 0.06em;
     text-align: right;
     max-width: 46vw;
@@ -2801,10 +2790,9 @@ body[data-mode="windowed"] .terminal__info {
 
   .sky-place {
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     letter-spacing: 0.08em;
-    -webkit-font-smoothing: antialiased;
   }
 
   .sky-where,
@@ -2812,18 +2800,16 @@ body[data-mode="windowed"] .terminal__info {
   .sky-phase,
   .sky-pct {
     font-size: 22px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .sky-clock {
     margin-top: 2px;
     font-size: 40px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     letter-spacing: 0.06em;
-    -webkit-font-smoothing: antialiased;
   }
 
   .sky-moon {
@@ -2897,8 +2883,7 @@ body[data-mode="windowed"] .terminal__info {
   .info-row__label,
   .info-row__val {
     color: var(--fg);
-    font-weight: 400;
-    -webkit-font-smoothing: antialiased;
+    font-weight: var(--weight);
   }
 
   .terminal__metrics > .term-row > .term-row__label {
@@ -2954,10 +2939,9 @@ body[data-mode="windowed"] .terminal__info {
   .info-row {
     grid-template-columns: 4.2em minmax(0, 1fr);
     font-size: 26px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     gap: 16px;
-    -webkit-font-smoothing: antialiased;
   }
 
   .info-row__val {
@@ -2987,10 +2971,9 @@ body[data-mode="windowed"] .terminal__info {
 
   .app-name {
     font-size: 20px;
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     letter-spacing: 0.16em;
-    -webkit-font-smoothing: antialiased;
   }
 
   .app-page {
@@ -3007,9 +2990,8 @@ body[data-mode="windowed"] .terminal__info {
   .task-beat__text,
   .task-beat__edit,
   .task-drop {
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .type-set {
@@ -3028,15 +3010,13 @@ body[data-mode="windowed"] .terminal__info {
   .sit-unit,
   .sit-hint {
     font-size: calc(18px * var(--type-scale));
-    -webkit-font-smoothing: antialiased;
   }
 
   .sit-field,
   .sit-preview,
   .sit-step {
     font-size: calc(28px * var(--type-scale));
-    font-weight: 400;
-    -webkit-font-smoothing: antialiased;
+    font-weight: var(--weight);
   }
 
   .sit-row,
@@ -3047,7 +3027,7 @@ body[data-mode="windowed"] .terminal__info {
 
   .desk-npc,
   .desk-slip {
-    height: 200px;
+    height: 256px;
     padding-top: 18px;
   }
 
@@ -3096,7 +3076,6 @@ body[data-mode="windowed"] .terminal__info {
     font-size: calc(18px * var(--type-scale));
     color: var(--fg);
     opacity: 0.62;
-    -webkit-font-smoothing: antialiased;
   }
 
   .task-prompt,
@@ -3118,10 +3097,9 @@ body[data-mode="windowed"] .terminal__info {
 
   .task-day__date,
   .task-beat__time {
-    font-weight: 400;
+    font-weight: var(--weight);
     color: var(--fg);
     opacity: 0.62;
-    -webkit-font-smoothing: antialiased;
   }
 
   .task-day__date {
@@ -3218,11 +3196,10 @@ body[data-mode="windowed"] .terminal__info {
     grid-template-columns: 4.2em minmax(0, 1fr);
     column-gap: 16px;
     font-size: 26px;
-    font-weight: 400;
+    font-weight: var(--weight);
     line-height: 1.4;
     letter-spacing: 0.06em;
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .log-top__row,
@@ -3231,11 +3208,10 @@ body[data-mode="windowed"] .terminal__info {
     grid-template-columns: max-content max-content;
     column-gap: 16px;
     font-size: 26px;
-    font-weight: 400;
+    font-weight: var(--weight);
     line-height: 1.4;
     letter-spacing: 0.06em;
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .log-line__text,
@@ -3252,7 +3228,6 @@ body[data-mode="windowed"] .terminal__info {
   .log-row {
     font-size: 22px;
     padding: 12px 0;
-    -webkit-font-smoothing: antialiased;
   }
 
   .pixel-dog {

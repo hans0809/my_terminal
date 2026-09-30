@@ -1,8 +1,8 @@
 /* FLOW — 墨水纸终端 chrome + 纸面阅读排版 */
 
 #app-flow {
-  --flow-display: "Fraunces", "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
-  --flow-text: "Source Serif 4", "Noto Serif SC", Georgia, "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --flow-display: "KaiTi", "STKaiti", "楷体", "SimSun", serif;
+  --flow-text: "SimSun", "Songti SC", "STSong", "KaiTi", serif;
 }
 
 #app-flow.is-reading {
@@ -647,7 +647,6 @@
   .flow-read__body {
     font-weight: 400;
     color: var(--fg);
-    -webkit-font-smoothing: antialiased;
   }
 
   .flow-tab,

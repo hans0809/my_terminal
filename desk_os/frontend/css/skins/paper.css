@@ -13,7 +13,9 @@ html[data-skin="paper"] {
   --dog-ink: #6a5344;
   --dog-faint: #b5a08c;
   --dog-deep: #2a1c12;
-  --font: "Source Serif 4", "Noto Serif SC", "Songti SC", Palatino, serif;
+  --font: "FangSong", "STFangsong", "仿宋", "SimSun", "Palatino Linotype", serif;
+  --voice: "FangSong", "STFangsong", "仿宋", "KaiTi", "SimSun", serif;
+  --weight: 400;
   --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
   --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
 }

@@ -1,0 +1,4 @@
+OCRA.ttf is the regular OCR-A face from Matthew Skala's OCR fonts 0.3.1
+(Tsukurimashou Project, https://tsukurimashou.org/ocr.php.en).
+His contributions are released to the public domain. The package is free
+to use, including in commercial applications.

@@ -13,7 +13,9 @@ html[data-skin="phosphor"] {
   --dog-ink: #7dcc6e;
   --dog-faint: #3a7840;
   --dog-deep: #e4ffd8;
-  --font: "Lucida Console", "Sarasa Mono SC", Consolas, "Courier New", monospace;
+  --font: "Courier New", "SimHei", "Heiti SC", "STHeiti", "黑体", monospace;
+  --voice: "Courier New", "SimHei", "Heiti SC", "STHeiti", "黑体", monospace;
+  --weight: 700;
   --cursor-cross: url("/assets/cursor-cross.png?v=2") 16 16, crosshair;
   --cursor-block: url("/assets/cursor-block.png?v=2") 16 16, text;
 }
@@ -26,7 +28,9 @@ html[data-skin="phosphor"] body {
 }
 
 html[data-skin="phosphor"] .crt.is-on {
-  text-shadow: 0 0 1px rgba(180, 255, 160, 0.55);
+  text-shadow:
+    0.025em 0 0 currentColor,
+    0 0 0.06em rgba(160, 255, 140, 0.45);
 }
 
 html[data-skin="phosphor"] {
